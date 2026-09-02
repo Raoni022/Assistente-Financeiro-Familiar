@@ -60,6 +60,27 @@ Preencha `.env.local`. Nada de chave commitada — `.env*.local` está no `.giti
 Para o teste de isolamento de RLS, crie um **segundo projeto descartável** e preencha as variáveis
 `TEST_SUPABASE_*`. O teste cria e destrói dois households fictícios — não aponte para produção.
 
+## Keep-alive do Supabase
+
+O plano free do Supabase pausa o projeto após ~7 dias de baixa atividade. `/api/keep-alive` faz um
+`select id limit 1` em `households` — sem join, sem contagem — só para gerar uma requisição real que
+reinicia o contador. Agendada em `vercel.json` para `0 0 * * *`.
+
+**`CRON_SECRET` precisa estar configurado nas Environment Variables da Vercel** (Production). A
+Vercel Cron envia o segredo como `Authorization: Bearer $CRON_SECRET`; sem a variável, a rota
+responde 500 em vez de ficar aberta. Gere com `openssl rand -hex 32` e evite quebra de linha ou
+caractere de controle, que o header de autorização não aceita.
+
+A rota usa a chave **anon**, não a service role: ela não precisa ler dado nenhum, só que a requisição
+chegue ao Postgres. A RLS devolve zero linhas e está correto — o que conta é o round-trip. Um
+endpoint alcançável pela internet não deve carregar service role sem necessidade.
+
+Teste local:
+
+```bash
+curl -i -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/keep-alive
+```
+
 ## Comandos
 
 ```bash
