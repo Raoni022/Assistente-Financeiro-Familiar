@@ -1,6 +1,7 @@
 import 'server-only';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { billsAgent } from '@/server/agents/bills/agent';
+import { tasksAgent } from '@/server/agents/tasks/agent';
 import { transactionsAgent } from '@/server/agents/transactions/agent';
 import type {
   AgentContext,
@@ -32,8 +33,8 @@ import { synthesize } from './synthesize';
 const AGENTS: Record<AgentName, SpecialistAgent> = {
   bills: billsAgent,
   transactions: transactionsAgent,
-  // Fases 4, 5 e 6. Até lá o roteador não emite intenções destes agentes.
-  tasks: notImplemented('tasks'),
+  tasks: tasksAgent,
+  // Fases 5 e 6. Até lá o roteador não emite intenções destes agentes.
   insights: notImplemented('insights'),
   memory: notImplemented('memory'),
 };

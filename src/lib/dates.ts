@@ -56,6 +56,25 @@ export function dueLabel(dueDate: IsoDate, today: IsoDate): string {
   return `vencida há ${Math.abs(days)} dias`;
 }
 
+/**
+ * Rótulo de prazo de tarefa. Vive aqui, e não junto do agente, porque é
+ * formatação consumida pela UI — `src/server/**` não pode ser importado por
+ * client component, e um card de tarefa pode virar um amanhã.
+ *
+ * Distinto de `dueLabel`: tarefa atrasada não é "vencida", e tarefa sem prazo
+ * é um estado legítimo que conta nenhuma tem.
+ */
+export function deadlineLabel(dueDate: IsoDate | null, today: IsoDate): string {
+  if (dueDate === null) return 'sem prazo';
+
+  const days = daysUntil(dueDate, today);
+  if (days === 0) return 'para hoje';
+  if (days === 1) return 'para amanhã';
+  if (days > 1) return `em ${days} dias`;
+  if (days === -1) return 'atrasada desde ontem';
+  return `atrasada há ${Math.abs(days)} dias`;
+}
+
 export interface DateRange {
   start: IsoDate;
   end: IsoDate;

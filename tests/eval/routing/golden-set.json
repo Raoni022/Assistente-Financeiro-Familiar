@@ -332,6 +332,89 @@
       "$comment": "Fronteira: conta conhecida sendo quitada, nao gasto avulso."
     },
     {
+      "id": "tk-01",
+      "message": "preciso ligar pro banco pra renegociar o cartão",
+      "mode": "delegate",
+      "intents": [
+        "tasks.create"
+      ]
+    },
+    {
+      "id": "tk-02",
+      "message": "me lembra de pesquisar um seguro mais barato até sexta que vem",
+      "mode": "delegate",
+      "intents": [
+        "tasks.create"
+      ]
+    },
+    {
+      "id": "tk-03",
+      "message": "a Camila vai cancelar a conta do streaming, anota aí",
+      "mode": "delegate",
+      "intents": [
+        "tasks.create"
+      ]
+    },
+    {
+      "id": "tk-04",
+      "message": "o que eu tenho pra fazer?",
+      "mode": "delegate",
+      "intents": [
+        "tasks.list"
+      ]
+    },
+    {
+      "id": "tk-05",
+      "message": "quais tarefas estão atrasadas?",
+      "mode": "delegate",
+      "intents": [
+        "tasks.list"
+      ]
+    },
+    {
+      "id": "tk-06",
+      "message": "já liguei pro banco, pode marcar como feito",
+      "mode": "delegate",
+      "intents": [
+        "tasks.complete"
+      ]
+    },
+    {
+      "id": "tk-07",
+      "message": "adia a pesquisa do seguro pra semana que vem",
+      "mode": "delegate",
+      "intents": [
+        "tasks.update"
+      ]
+    },
+    {
+      "id": "tk-08",
+      "message": "apaga a tarefa de pesquisar seguro",
+      "mode": "delegate",
+      "intents": [
+        "tasks.delete"
+      ]
+    },
+    {
+      "id": "borda-03",
+      "message": "cancela a assinatura da academia",
+      "mode": "delegate",
+      "intents": [
+        "bills.delete"
+      ],
+      "$comment": "Ambiguo por natureza. A regra do prompt manda preferir bills.delete: uma conta que segue cobrando incomoda mais que uma tarefa faltando."
+    },
+    {
+      "id": "multi-06",
+      "message": "cadastra o IPTU de 890 pro dia 20 e cria uma tarefa pra eu pesquisar parcelamento",
+      "mode": "delegate",
+      "intents": [
+        "bills.create",
+        "tasks.create"
+      ],
+      "$comment": "Agentes diferentes, independentes — paralelo."
+    },
+    {
       "id": "direct-01",
       "message": "oi",
       "mode": "direct",

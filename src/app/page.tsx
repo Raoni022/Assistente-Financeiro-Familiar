@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { BillsCard } from '@/components/dashboard/BillsCard';
 import { HeroCard } from '@/components/dashboard/HeroCard';
+import { TasksCard } from '@/components/dashboard/TasksCard';
 import { TransactionsCard } from '@/components/dashboard/TransactionsCard';
 import { monthLabel, todayInTz } from '@/lib/dates';
 import { requireHousehold } from '@/server/auth/session';
@@ -9,6 +10,7 @@ import { createClient } from '@/server/db/server';
 import {
   getAttentionBills,
   getMonthSummary,
+  getOpenTasks,
   getRecentTransactions,
 } from '@/server/db/queries/dashboard';
 
@@ -31,10 +33,11 @@ export default async function DashboardPage() {
 
   const budgetCents = (household?.monthly_budget_cents as number | null) ?? null;
 
-  const [summary, bills, transactions] = await Promise.all([
+  const [summary, bills, transactions, tasks] = await Promise.all([
     getMonthSummary(today, budgetCents),
     getAttentionBills(today),
     getRecentTransactions(),
+    getOpenTasks(),
   ]);
 
   return (
@@ -61,6 +64,8 @@ export default async function DashboardPage() {
           <BillsCard bills={bills} today={today} />
           <TransactionsCard transactions={transactions} today={today} />
         </div>
+
+        <TasksCard tasks={tasks} today={today} />
       </div>
 
       <ChatPanel displayName={session.displayName.split(' ')[0] ?? session.displayName} />

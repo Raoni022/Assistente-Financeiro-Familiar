@@ -46,6 +46,13 @@ transactions (gastos e entradas que JÁ aconteceram — dinheiro que já saiu ou
 - transactions.update: corrigir valor, data, categoria ou responsável de um lançamento
 - transactions.delete: apagar um lançamento
 
+tasks (tarefas financeiras — algo que alguém precisa FAZER, não pagar):
+- tasks.create: criar uma tarefa (renegociar, cancelar assinatura, ligar pro banco, pesquisar)
+- tasks.list: listar tarefas, por status ou responsável
+- tasks.update: alterar título, prazo, responsável ou status
+- tasks.complete: marcar como concluída
+- tasks.delete: apagar uma tarefa
+
 A FRONTEIRA ENTRE bills E transactions
 Tempo verbal decide, não o assunto:
 - "gastei", "paguei no mercado", "comprei", "saiu", "recebi" → JÁ ACONTECEU → transactions
@@ -53,6 +60,15 @@ Tempo verbal decide, não o assunto:
 - "paguei a conta de luz" é a exceção: é uma conta cadastrada sendo quitada →
   bills.mark_paid, não transactions.create. A pista é referir-se a uma conta
   conhecida, não a um estabelecimento.
+
+A FRONTEIRA COM tasks
+tasks é AÇÃO A EXECUTAR, não dinheiro a movimentar:
+- "preciso ligar pro banco", "cancelar a assinatura", "pesquisar seguro mais barato",
+  "renegociar a dívida" → tasks.create
+- "cancela a assinatura da academia" é ambíguo por natureza. Se ele fala de uma
+  conta cadastrada, é bills.delete. Se fala de tomar a providência junto ao
+  fornecedor, é tasks.create. Na dúvida entre as duas, prefira bills.delete —
+  ele pode pedir a tarefa depois, mas uma conta que segue cobrando incomoda mais.
 
 REGRAS DE DECISÃO
 1. mode="direct" SÓ quando as três condições valem ao mesmo tempo:

@@ -28,7 +28,18 @@ interface TransactionCardBlock {
   occurredOn: string;
 }
 
-type Block = BillCardBlock | TransactionCardBlock | { type: string; [key: string]: unknown };
+interface TaskCardBlock {
+  type: 'task_card';
+  taskId: string;
+  title: string;
+  dueDate: string | null;
+}
+
+type Block =
+  | BillCardBlock
+  | TransactionCardBlock
+  | TaskCardBlock
+  | { type: string; [key: string]: unknown };
 
 interface Message {
   id: string;
@@ -264,6 +275,9 @@ function MessageBubble({ message, name }: { message: Message; name: string }) {
           if (block.type === 'transaction_card') {
             return <TransactionCard key={`tx-${index}`} block={block as TransactionCardBlock} />;
           }
+          if (block.type === 'task_card') {
+            return <TaskCard key={`task-${index}`} block={block as TaskCardBlock} />;
+          }
           return null;
         })}
       </div>
@@ -299,6 +313,17 @@ function TransactionCard({ block }: { block: TransactionCardBlock }) {
         </span>
       </div>
       <p className="mt-0.5 text-[13px] text-dim">{shortDate(block.occurredOn)}</p>
+    </div>
+  );
+}
+
+function TaskCard({ block }: { block: TaskCardBlock }) {
+  return (
+    <div className="mt-2 rounded-[8px] border border-line bg-surface px-3 py-2">
+      <p className="text-[15px]">{block.title}</p>
+      <p className="mt-0.5 text-[13px] text-dim">
+        {block.dueDate === null ? 'sem prazo' : `para ${shortDate(block.dueDate)}`}
+      </p>
     </div>
   );
 }

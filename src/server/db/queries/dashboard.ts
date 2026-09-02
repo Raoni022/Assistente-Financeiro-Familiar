@@ -4,6 +4,8 @@ import { daysUntil, isOverdue, monthRange, type IsoDate } from '@/lib/dates';
 import { sumCents } from '@/lib/money';
 import type {
   BillOccurrence,
+  Task,
+  TaskStatus,
   Category,
   Member,
   MonthSummary,
@@ -192,4 +194,43 @@ export async function getMonthSummary(
     // o caso em vez de exibir um número que não significa nada.
     remainingCents: budgetCents === null ? null : budgetCents - spentCents - duePendingCents,
   };
+}
+
+interface TaskRow {
+  id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  status: TaskStatus;
+  assignee_id: string | null;
+  bill_id: string | null;
+}
+
+/**
+ * Tarefas em aberto. Só as abertas: uma lista que acumula tudo o que já foi
+ * feito deixa de ser algo que se olha.
+ */
+export async function getOpenTasks(limit = 6): Promise<Task[]> {
+  const supabase = await createClient();
+  const members = await getMembers(supabase);
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('id, title, description, due_date, status, assignee_id, bill_id')
+    .in('status', ['todo', 'doing'])
+    // Nulls por último: sem prazo não é urgente, mas continua na lista.
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .limit(limit);
+
+  if (error) throw new Error(`Falha ao carregar tarefas: ${error.message}`);
+
+  return ((data ?? []) as TaskRow[]).map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    dueDate: row.due_date,
+    status: row.status,
+    assignee: row.assignee_id ? (members.get(row.assignee_id) ?? null) : null,
+    billId: row.bill_id,
+  }));
 }

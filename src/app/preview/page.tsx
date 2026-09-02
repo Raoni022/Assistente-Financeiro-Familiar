@@ -2,9 +2,10 @@ import { notFound } from 'next/navigation';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { BillsCard } from '@/components/dashboard/BillsCard';
 import { HeroCard } from '@/components/dashboard/HeroCard';
+import { TasksCard } from '@/components/dashboard/TasksCard';
 import { TransactionsCard } from '@/components/dashboard/TransactionsCard';
 import { daysUntil, isOverdue, monthLabel } from '@/lib/dates';
-import type { BillOccurrence, Category, Member, MonthSummary, Transaction } from '@/lib/types';
+import type { BillOccurrence, Category, Member, MonthSummary, Task, Transaction } from '@/lib/types';
 
 /**
  * Bancada de revisão de design. Renderiza o dashboard com dados fictícios, sem
@@ -107,6 +108,36 @@ const SUMMARY: MonthSummary = {
   remainingCents: 750000 - 348290 - 167390,
 };
 
+const TASKS: Task[] = [
+  {
+    id: 'k1',
+    title: 'Renegociar a fatura do cartão',
+    description: null,
+    dueDate: '2026-08-30',
+    status: 'todo',
+    assignee: RAONI,
+    billId: 'b-o3',
+  },
+  {
+    id: 'k2',
+    title: 'Pesquisar seguro do carro mais barato',
+    description: null,
+    dueDate: '2026-09-10',
+    status: 'doing',
+    assignee: CAMILA,
+    billId: null,
+  },
+  {
+    id: 'k3',
+    title: 'Cancelar assinatura que ninguém usa',
+    description: null,
+    dueDate: null,
+    status: 'todo',
+    assignee: null,
+    billId: null,
+  },
+];
+
 export default function PreviewPage() {
   if (process.env.NODE_ENV === 'production') notFound();
 
@@ -125,6 +156,8 @@ export default function PreviewPage() {
           <BillsCard bills={BILLS} today={TODAY} />
           <TransactionsCard transactions={TRANSACTIONS} today={TODAY} />
         </div>
+
+        <TasksCard tasks={TASKS} today={TODAY} />
       </div>
 
       <ChatPanel displayName="Raoni" />
