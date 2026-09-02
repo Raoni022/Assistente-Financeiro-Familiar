@@ -36,8 +36,10 @@ npm run dev   # depois abra http://localhost:3000/preview
 
 ## Requisitos
 
-- **Node.js 22 LTS.** Não 20. `@supabase/supabase-js@2.114` declara `engines: node >= 22`, e a
-  Vercel roda Node 22 por padrão — rodar 20 localmente é divergir do ambiente de produção.
+- **Node.js 24 LTS.** Não 20. `@supabase/supabase-js` exige `node >= 22`, e a Vercel usa **24.x**
+  como padrão para projetos novos — rodar 20 local é divergir de produção. O Node 20 também está
+  **deprecado na Vercel a partir de 1º de outubro de 2026**. `package.json` fixa `engines.node`
+  em `24.x` para que local e produção não divirjam em silêncio.
 - npm 10+
 - Uma conta Supabase (plano free serve)
 
@@ -52,13 +54,51 @@ Preencha `.env.local`. Nada de chave commitada — `.env*.local` está no `.giti
 
 ### Banco
 
-1. Crie um projeto no Supabase.
-2. Ative a extensão `vector` (Database → Extensions → `vector`).
-3. Rode `supabase/migrations/0001_init.sql` no SQL Editor.
-4. Copie `URL`, `anon key` e `service_role key` para `.env.local`.
+1. Crie um projeto no Supabase (região `South America (São Paulo)` para a menor latência).
+2. Ative a extensão `vector` em Database → Extensions.
+3. Cole `supabase/migrations/0001_init.sql` inteiro no SQL Editor e rode.
+4. Project Settings → API: copie `URL`, `anon key` e `service_role key` para `.env.local`.
+5. Confirme que deu certo:
 
-Para o teste de isolamento de RLS, crie um **segundo projeto descartável** e preencha as variáveis
-`TEST_SUPABASE_*`. O teste cria e destrói dois households fictícios — não aponte para produção.
+```bash
+npm run db:check
+```
+
+`db:check` verifica conectividade, as 16 tabelas, o seed de categorias, o pgvector com a RPC
+`match_memories` e — o mais importante — que **um cliente anônimo não lê nada**. A anon key é
+pública por desenho; uma tabela sem policy fica aberta para qualquer pessoa.
+
+### Auth (obrigatório para o magic link funcionar)
+
+Em Authentication → URL Configuration:
+
+- **Site URL**: `http://localhost:3000` em desenvolvimento, o domínio da Vercel em produção.
+- **Redirect URLs**: adicione `http://localhost:3000/auth/callback` e
+  `https://SEU-DOMINIO.vercel.app/auth/callback`.
+
+Sem isso o link chega no e-mail e o retorno falha.
+
+> **⚠️ O SMTP embutido do Supabase só entrega para endereços que estão no time do projeto**, com
+> limite baixo de mensagens por hora. Ou seja: o magic link chega para você, mas **não chega para
+> os outros membros da família**. Antes de convidar alguém, configure um SMTP próprio em
+> Authentication → Emails → SMTP Settings. O free do Resend resolve.
+
+### Segundo projeto, para o teste de RLS
+
+O teste de isolamento cria e destrói usuários — **não aponte para o projeto principal**. Duas
+opções:
+
+- **Supabase local** (precisa de Docker): `npx supabase start`, rode a migração e use as
+  credenciais que a CLI imprime. Não consome cota e é mais rápido.
+- **Segundo projeto na nuvem**: mesmos passos do banco principal. Atenção: o plano free dá
+  **2 projetos ativos no total**, contando todas as organizações onde você é owner — principal +
+  teste esgota a cota.
+
+Preencha `TEST_SUPABASE_URL`, `TEST_SUPABASE_ANON_KEY` e `TEST_SUPABASE_SERVICE_ROLE_KEY`, e rode:
+
+```bash
+npm run test:rls
+```
 
 ## Keep-alive do Supabase
 

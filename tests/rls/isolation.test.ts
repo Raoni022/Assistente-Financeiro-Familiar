@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import 'dotenv/config';
+import '../../scripts/load-env.mjs';
 
 /**
  * Isolamento entre households — requisito 5.1 do brief: "testado com pelo menos

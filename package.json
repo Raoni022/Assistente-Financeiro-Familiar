@@ -2,6 +2,9 @@
   "name": "assistente-financeiro-familiar",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -12,7 +15,8 @@
     "test": "cross-env TZ=Asia/Tokyo vitest run --dir tests/unit",
     "test:watch": "cross-env TZ=Asia/Tokyo vitest --dir tests/unit",
     "test:rls": "vitest run --dir tests/rls",
-    "eval": "vitest run --dir tests/eval --testTimeout=120000"
+    "eval": "vitest run --dir tests/eval --testTimeout=120000",
+    "db:check": "node scripts/check-supabase.mjs"
   },
   "dependencies": {
     "@langchain/anthropic": "^1.5.9",
