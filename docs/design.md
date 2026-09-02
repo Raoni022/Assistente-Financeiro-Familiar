@@ -192,8 +192,17 @@ Ao fechar, o valor "GASTO NO MÊS" no dashboard já está atualizado, com o puls
 
 Não é o mobile esticado nem um layout novo. Duas colunas para o dashboard (herói ocupando a largura
 inteira, depois vencimentos | gastos lado a lado), e o chat vira **painel lateral direito fixo de
-400px** que desliza sobre o conteúdo — mesmo componente, mesma máquina de estados, só a apresentação
-muda por media query.
+400px** — mesmo componente, mesma máquina de estados, só a apresentação muda por media query.
+
+**Revisado após ver funcionando:** o painel não desliza *sobre* o conteúdo, como estava escrito aqui
+antes. Sobrepondo, ele cobria a coluna inteira de "últimos gastos" — o oposto do "nunca perder o
+contexto visual dos dados enquanto conversa" que o brief pede. No mobile encobrir parte da tela é
+uma limitação de espaço; no desktop seria uma escolha, e há espaço de sobra. Com o painel aberto, o
+conteúdo ganha `padding-right: 400px` e o dashboard inteiro continua legível.
+
+Implementado com `body:has(.chat-dialog[open])`, não com uma classe aplicada por JS: o `<dialog>` já
+carrega o estado em `[open]`, e duplicá-lo em estado do React criaria uma segunda fonte da verdade
+para dessincronizar.
 
 ```
 ┌──────────────────────────────────────────────────────────┬──────────────────┐
@@ -222,7 +231,7 @@ Pouco, e sempre com função.
 | O quê | Como | Duração |
 |---|---|---|
 | Chat abre/fecha (mobile) | `translateY` + opacity do backdrop | 260ms `cubic-bezier(.32,.72,0,1)` |
-| Chat abre/fecha (desktop) | `translateX` do painel | 220ms, mesma curva |
+| Chat abre/fecha (desktop) | `translateX` do painel + `padding-right` do conteúdo | 220ms, mesma curva |
 | Valor muda após ação do agente | flash de fundo a 12% de `--positive`/`--negative` atrás do número, sem mexer no layout | 600ms ease-out |
 | Resposta do agente | streaming de texto | nativo, sem animação extra |
 

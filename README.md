@@ -9,17 +9,30 @@ Sistema multi-agente de assistência financeira para uso da família. Next.js + 
 
 | Fase | Escopo | Status |
 |---|---|---|
-| 1 | Fundação: setup, schema + RLS, estrutura de pastas, plano de design, shell visual | **em andamento** |
+| 1 | Fundação: setup, schema + RLS, auth, estrutura de pastas, plano de design, shell visual | **código pronto — falta validar contra um Supabase real** |
 | 2 | Orquestrador + Agente de Contas | não iniciada |
 | 3 | Agente de Gastos + avaliação de extração | não iniciada |
 | 4 | Agente de Tarefas | não iniciada |
 | 5 | Memória semântica (pgvector) | não iniciada |
 | 6 | Insights | não iniciada |
 
-Concluído na Fase 1: dependências, TypeScript estrito, Tailwind v4, tokens de design,
-contratos de agente, migração de schema com RLS, harness de testes.
-Pendente na Fase 1: aplicar a migração num Supabase real, teste de isolamento de RLS,
-auth, shell visual.
+**Concluído na Fase 1:** dependências, TypeScript estrito, Tailwind v4, tokens de design, contratos
+de agente, migração de schema com RLS, auth por magic link, onboarding (criar casa / entrar por
+convite), shell visual completo (dashboard + chat flutuante) e a suíte de isolamento de RLS escrita.
+
+**Pendente na Fase 1, e depende de você:** aplicar a migração num Supabase real e rodar
+`npm run test:rls`. Até isso acontecer, o schema e as policies são código não verificado — o
+requisito 5.1 do brief pede isolamento *testado*, não presumido.
+
+### Revisar o design sem Supabase
+
+`/preview` renderiza o dashboard e o chat com dados fictícios, sem tocar em banco nem em sessão.
+Existe só em desenvolvimento (404 em produção — tela com números inventados num app financeiro não
+pode escapar para o ambiente real).
+
+```bash
+npm run dev   # depois abra http://localhost:3000/preview
+```
 
 ## Requisitos
 

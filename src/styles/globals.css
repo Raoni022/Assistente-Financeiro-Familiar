@@ -105,3 +105,129 @@
     animation: none;
   }
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * Painel de chat flutuante (docs/design.md §4.2)
+ *
+ * <dialog> nativo com showModal(): foco preso, Esc fecha e o foco volta ao FAB
+ * sem uma linha de JS. Um trap manual erraria alguma dessas três.
+ *
+ * `transition-behavior: allow-discrete` + `@starting-style` são o que permitem
+ * animar a entrada de um elemento que sai de `display: none` — sem eles, o
+ * sheet apareceria estalado e só a saída seria animada.
+ * ---------------------------------------------------------------------------
+ */
+.chat-dialog {
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: visible;
+
+  /* Mobile: bottom sheet colado embaixo, largura cheia. */
+  width: 100%;
+  height: 85dvh;
+  margin: auto auto 0 auto;
+
+  opacity: 0;
+  translate: 0 100%;
+  transition:
+    opacity 260ms var(--ease-sheet),
+    translate 260ms var(--ease-sheet),
+    overlay 260ms allow-discrete,
+    display 260ms allow-discrete;
+}
+
+.chat-dialog[open] {
+  opacity: 1;
+  translate: 0 0;
+}
+
+@starting-style {
+  .chat-dialog[open] {
+    opacity: 0;
+    translate: 0 100%;
+  }
+}
+
+.chat-dialog::backdrop {
+  /* O dashboard continua visível atrás — o usuário nunca perde o contexto. */
+  background: rgb(14 15 19 / 0.6);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition:
+    opacity 260ms var(--ease-sheet),
+    overlay 260ms allow-discrete,
+    display 260ms allow-discrete;
+}
+
+.chat-dialog[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .chat-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* Desktop: painel lateral direito. Mesmo componente, só a apresentação muda. */
+@media (width >= 1024px) {
+  .chat-dialog {
+    width: 400px;
+    height: 100dvh;
+    margin: 0 0 0 auto;
+    translate: 100% 0;
+    transition-duration: 220ms;
+  }
+
+  .chat-dialog[open] {
+    translate: 0 0;
+  }
+
+  @starting-style {
+    .chat-dialog[open] {
+      translate: 100% 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-dialog,
+  .chat-dialog::backdrop {
+    transition-duration: 1ms;
+  }
+
+  .chat-dialog {
+    translate: 0 0;
+  }
+}
+
+/*
+ * Desktop: com o painel aberto, o conteúdo desloca em vez de ser encoberto.
+ * O brief pede que o usuário não perca o contexto visual dos dados enquanto
+ * conversa — no mobile o sheet cobre parte da tela e tudo bem, mas no desktop
+ * há espaço de sobra e tapar metade do dashboard seria uma escolha, não uma
+ * limitação.
+ *
+ * `:has()` em vez de uma classe no <body> via JS: o <dialog> já carrega o
+ * estado em [open], então duplicá-lo em estado do React só criaria uma segunda
+ * fonte da verdade para dessincronizar.
+ */
+@media (width >= 1024px) {
+  .dashboard-shell {
+    transition: padding-right 220ms var(--ease-sheet);
+  }
+
+  body:has(.chat-dialog[open]) .dashboard-shell {
+    padding-right: 400px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell {
+    transition-duration: 1ms;
+  }
+}

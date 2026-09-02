@@ -9,8 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --dir tests/unit",
-    "test:watch": "vitest --dir tests/unit",
+    "test": "cross-env TZ=Asia/Tokyo vitest run --dir tests/unit",
+    "test:watch": "cross-env TZ=Asia/Tokyo vitest --dir tests/unit",
     "test:rls": "vitest run --dir tests/rls",
     "eval": "vitest run --dir tests/eval --testTimeout=120000"
   },
@@ -36,6 +36,7 @@
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.4",
