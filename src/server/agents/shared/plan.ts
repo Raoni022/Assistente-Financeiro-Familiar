@@ -1,9 +1,10 @@
 import 'server-only';
 import { z } from 'zod';
 import {
+  ACTIVE_AGENTS,
+  ACTIVE_INTENTS,
   AGENT_BY_INTENT,
-  AGENT_INTENTS,
-  AGENT_NAMES,
+  type AgentIntent,
   type ExecutionPlan,
   type PlanStep,
   type StepResult,
@@ -21,8 +22,10 @@ export const PlanStepSchema = z.object({
   id: z
     .string()
     .regex(/^[a-z][a-z0-9_]{0,15}$/, 'id deve ser curto e alfanumérico, ex: "s1"'),
-  agent: z.enum(AGENT_NAMES),
-  intent: z.enum(AGENT_INTENTS),
+  // Só agentes e intenções com implementação real: o modelo não consegue
+  // propor algo que ainda não existe. Ver ACTIVE_AGENTS em contracts.ts.
+  agent: z.enum(ACTIVE_AGENTS),
+  intent: z.enum(ACTIVE_INTENTS as [AgentIntent, ...AgentIntent[]]),
   payload: z.record(z.string(), z.unknown()).default({}),
   dependsOn: z.array(z.string()).max(8).default([]),
 });

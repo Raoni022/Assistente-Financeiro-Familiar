@@ -20,7 +20,6 @@ export const AGENT_INTENTS = [
   'bills.update',
   'bills.delete',
   'bills.mark_paid',
-  'bills.upcoming',
   'bills.overdue',
 
   'transactions.create',
@@ -50,6 +49,26 @@ export type AgentIntent = (typeof AGENT_INTENTS)[number];
 export const AGENT_BY_INTENT: Record<AgentIntent, AgentName> = Object.fromEntries(
   AGENT_INTENTS.map((intent) => [intent, intent.split('.')[0] as AgentName]),
 ) as Record<AgentIntent, AgentName>;
+
+/**
+ * Agentes com implementação real. `AGENT_INTENTS` acima é a taxonomia completa,
+ * incluindo fases ainda não construídas.
+ *
+ * A distinção existe porque o golden set flagrou o roteador emitindo
+ * `insights.compare_periods` para "quem gastou mais esse mês?" — uma intenção
+ * válida no schema e sem agente por trás. O usuário receberia "isso entra numa
+ * fase seguinte" para uma pergunta que o agente de Gastos responde hoje.
+ *
+ * Restringir aqui torna o erro impossível em vez de instruído: o modelo não
+ * consegue nem propor a intenção. Ao ligar um agente novo, acrescente o nome
+ * nesta lista — é o único ponto a mudar.
+ */
+export const ACTIVE_AGENTS = ['bills', 'transactions', 'tasks'] as const;
+export type ActiveAgent = (typeof ACTIVE_AGENTS)[number];
+
+export const ACTIVE_INTENTS = AGENT_INTENTS.filter((intent) =>
+  (ACTIVE_AGENTS as readonly string[]).includes(AGENT_BY_INTENT[intent]),
+) as AgentIntent[];
 
 // ---------------------------------------------------------------------------
 // Contexto

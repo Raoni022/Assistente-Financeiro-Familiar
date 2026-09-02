@@ -87,8 +87,6 @@ export async function billsAgent(request: AgentRequest): Promise<AgentResponse> 
       return create(supabase, request, parsed.data as never, today);
     case 'bills.list':
       return list(supabase, parsed.data as never, today);
-    case 'bills.upcoming':
-      return upcoming(supabase, parsed.data as never, today);
     case 'bills.overdue':
       return overdue(supabase, today);
     case 'bills.mark_paid':
@@ -411,24 +409,6 @@ async function list(
   return {
     success: true,
     data: { count: rows.length, occurrenceIds: rows.map((row) => row.id) },
-    summaryForOrchestrator: describe(rows, today),
-  };
-}
-
-async function upcoming(
-  supabase: Supabase,
-  payload: { days: number },
-  today: IsoDate,
-): Promise<AgentResponse> {
-  const to = format(addDays(parseISO(today), payload.days), 'yyyy-MM-dd');
-  // Sem `from`: uma conta vencida de mês passado continua sendo a mais urgente e
-  // não pode sumir só porque a janela começa hoje.
-  const rows = await fetchOccurrences(supabase, { status: 'pending', to, limit: 50 });
-  if ('error' in rows) return rows.error;
-
-  return {
-    success: true,
-    data: { count: rows.length, windowDays: payload.days },
     summaryForOrchestrator: describe(rows, today),
   };
 }

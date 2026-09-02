@@ -59,15 +59,29 @@ export const BillsCreateSchema = z.object({
   confirmDuplicate: z.boolean().default(false),
 });
 
+/**
+ * Única intenção de leitura de contas.
+ *
+ * Havia uma `bills.upcoming` separada, removida depois que o golden set mostrou
+ * que ela e `bills.list` produzem o mesmo dado e o roteador alternava entre as
+ * duas conforme a redação da frase. Duas intenções que fazem o mesmo trabalho
+ * geram ruído de roteamento que nenhum ajuste de prompt resolve.
+ *
+ * `from` nulo é o caso comum e o padrão: uma conta vencida do mês passado
+ * continua sendo a mais urgente e não pode sumir da lista por causa de um filtro
+ * de início de janela.
+ */
 export const BillsListSchema = z.object({
   status: z.enum(['pending', 'paid', 'cancelled', 'all']).default('pending'),
-  from: isoDate.nullable().default(null),
-  to: isoDate.nullable().default(null),
-  limit: z.number().int().min(1).max(100).default(30),
-});
-
-export const BillsUpcomingSchema = z.object({
-  days: z.number().int().min(1).max(365).default(30),
+  from: isoDate
+    .nullable()
+    .default(null)
+    .describe('Só quando o usuário delimitar o INÍCIO de um período passado. Normalmente null.'),
+  to: isoDate
+    .nullable()
+    .default(null)
+    .describe('Fim da janela, quando o usuário disser "essa semana", "até dia 20", "nesse mês".'),
+  limit: z.number().int().min(1).max(100).default(50),
 });
 
 export const BillsOverdueSchema = z.object({});
@@ -98,7 +112,6 @@ export const BillsDeleteSchema = z.object({
 export const BILLS_PAYLOAD_SCHEMAS = {
   'bills.create': BillsCreateSchema,
   'bills.list': BillsListSchema,
-  'bills.upcoming': BillsUpcomingSchema,
   'bills.overdue': BillsOverdueSchema,
   'bills.update': BillsUpdateSchema,
   'bills.mark_paid': BillsMarkPaidSchema,

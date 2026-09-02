@@ -54,6 +54,36 @@ describe('ExecutionPlanSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejeita intenção de agente ainda não implementado', () => {
+    /*
+     * O golden set flagrou o roteador propondo `insights.compare_periods` para
+     * "quem gastou mais esse mês?" — intenção válida na taxonomia e sem agente
+     * por trás. O usuário receberia "isso entra numa fase seguinte" para uma
+     * pergunta que o agente de Gastos responde hoje.
+     *
+     * Restringir o schema torna o erro impossível em vez de instruído. Este
+     * teste guarda essa fronteira sem gastar chamada de modelo — quando o
+     * Insights entrar, ele falha e lembra de atualizar ACTIVE_AGENTS.
+     */
+    const result = ExecutionPlanSchema.safeParse({
+      mode: 'delegate',
+      rationale: 'x',
+      steps: [{ id: 's1', agent: 'insights', intent: 'insights.compare_periods' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('aceita as intenções dos agentes que existem', () => {
+    for (const intent of ['bills.list', 'transactions.create', 'tasks.complete'] as const) {
+      const result = ExecutionPlanSchema.safeParse({
+        mode: 'delegate',
+        rationale: 'x',
+        steps: [{ id: 's1', agent: intent.split('.')[0], intent }],
+      });
+      expect(result.success, intent).toBe(true);
+    }
+  });
+
   it('rejeita plano com passos demais', () => {
     const steps = Array.from({ length: 7 }, (_, i) => ({
       id: `s${i}`,

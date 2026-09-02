@@ -31,10 +31,19 @@ function model(slot: ModelSlot): ChatAnthropic {
     model: MODELS[slot],
     apiKey: ANTHROPIC_API_KEY,
     maxTokens: MAX_OUTPUT_TOKENS[slot],
-    // Determinismo importa mais que criatividade em roteamento e extração. A
-    // síntese usa o mesmo valor: variar o texto da resposta não vale o custo de
-    // um golden set que oscila.
-    temperature: 0,
+    /*
+     * Sem `temperature`, e não por descuido.
+     *
+     * A família Claude 5 (opus-5, sonnet-5, fable-5, mythos-5) não expõe
+     * parâmetros de amostragem: passar `temperature`, `topK` ou `topP` com
+     * valor não-padrão lança antes de qualquer requisição sair. Só o Haiku 4.5
+     * aceitaria — e configurar por slot deixaria metade dos agentes com um
+     * comportamento e metade com outro, sem ganho.
+     *
+     * O que garante consistência aqui não é temperatura: é a união fechada de
+     * intenções, o schema Zod validando a saída estruturada e o golden set
+     * medindo regressão. Isso continua valendo.
+     */
     maxRetries: 0, // o retry é nosso, em run-agent.ts, para ficar no agent_runs
   });
 }

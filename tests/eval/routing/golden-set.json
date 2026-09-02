@@ -59,7 +59,7 @@
       "message": "o que vence essa semana?",
       "mode": "delegate",
       "intents": [
-        "bills.upcoming"
+        "bills.list"
       ]
     },
     {
@@ -67,7 +67,7 @@
       "message": "tem alguma conta chegando nos próximos dias?",
       "mode": "delegate",
       "intents": [
-        "bills.upcoming"
+        "bills.list"
       ]
     },
     {
@@ -75,7 +75,7 @@
       "message": "quanto eu tenho pra pagar até o fim do mês",
       "mode": "delegate",
       "intents": [
-        "bills.upcoming"
+        "bills.list"
       ]
     },
     {
@@ -180,7 +180,7 @@
       "mode": "delegate",
       "intents": [
         "bills.mark_paid",
-        "bills.upcoming"
+        "bills.list"
       ],
       "$comment": "Dois passos. O segundo depende do primeiro para não listar a luz como pendente."
     },
@@ -190,7 +190,7 @@
       "mode": "delegate",
       "intents": [
         "bills.overdue",
-        "bills.upcoming"
+        "bills.list"
       ],
       "$comment": "Independentes — devem sair com dependsOn vazio e rodar em paralelo."
     },
@@ -200,7 +200,7 @@
       "mode": "delegate",
       "intents": [
         "bills.create",
-        "bills.upcoming"
+        "bills.list"
       ]
     },
     {
@@ -308,7 +308,7 @@
       "message": "o que vence essa semana e quanto já gastei no mês?",
       "mode": "delegate",
       "intents": [
-        "bills.upcoming",
+        "bills.list",
         "transactions.summarize"
       ],
       "$comment": "Agentes diferentes, independentes — devem rodar em paralelo."
