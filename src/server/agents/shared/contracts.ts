@@ -1,0 +1,210 @@
+import 'server-only';
+
+/**
+ * Contratos entre agentes. Ver docs/architecture.md §2.
+ *
+ * Princípio: nenhum agente conversa com outro por texto solto. Todo salto passa
+ * por estas estruturas, validadas por Zod na fronteira.
+ */
+
+export const AGENT_NAMES = ['bills', 'transactions', 'tasks', 'insights', 'memory'] as const;
+export type AgentName = (typeof AGENT_NAMES)[number];
+
+/**
+ * Union fechada de intenções. O router só pode emitir valores daqui — é isso
+ * que torna o golden set de roteamento verificável de forma binária.
+ */
+export const AGENT_INTENTS = [
+  'bills.create',
+  'bills.list',
+  'bills.update',
+  'bills.delete',
+  'bills.mark_paid',
+  'bills.upcoming',
+  'bills.overdue',
+
+  'transactions.create',
+  'transactions.list',
+  'transactions.update',
+  'transactions.delete',
+  'transactions.summarize',
+
+  'tasks.create',
+  'tasks.list',
+  'tasks.update',
+  'tasks.complete',
+  'tasks.delete',
+
+  'insights.compare_periods',
+  'insights.category_breakdown',
+  'insights.budget_impact',
+  'insights.recurring_cuts',
+  'insights.anomalies',
+
+  'memory.recall',
+  'memory.write',
+  'memory.forget',
+] as const;
+export type AgentIntent = (typeof AGENT_INTENTS)[number];
+
+export const AGENT_BY_INTENT: Record<AgentIntent, AgentName> = Object.fromEntries(
+  AGENT_INTENTS.map((intent) => [intent, intent.split('.')[0] as AgentName]),
+) as Record<AgentIntent, AgentName>;
+
+// ---------------------------------------------------------------------------
+// Contexto
+// ---------------------------------------------------------------------------
+
+export interface RecalledMemory {
+  id: string;
+  content: string;
+  kind: 'preference' | 'fact' | 'decision' | 'pattern';
+  scope: 'user' | 'household';
+  similarity: number;
+}
+
+export interface ConversationContext {
+  /** Resumo rolante. Null enquanto a conversa é curta o bastante. */
+  summary: string | null;
+  /** Últimos turnos crus, já truncados. Nunca o histórico inteiro. */
+  recentTurns: Array<{ role: 'user' | 'assistant'; content: string }>;
+}
+
+/**
+ * Injetado pelo runner, nunca pelo LLM. O modelo não escolhe householdId —
+ * é isso que fecha a porta para prompt injection escalar escopo.
+ */
+export interface AgentContext {
+  householdId: string;
+  userId: string;
+  conversationId: string;
+  /** Fuso do household. Toda resolução de "hoje"/"ontem" passa por aqui. */
+  timezone: string;
+  conversationContext: ConversationContext;
+  /** Recuperadas uma única vez pelo nó recall_memory. Agentes não fazem retrieval. */
+  memories: RecalledMemory[];
+  /** Abortado quando o timeout do passo estoura. */
+  signal: AbortSignal;
+  /** Correlaciona todos os agent_runs de uma mesma mensagem do usuário. */
+  traceId: string;
+}
+
+// ---------------------------------------------------------------------------
+// Requisição / resposta
+// ---------------------------------------------------------------------------
+
+export interface AgentRequest<P = Record<string, unknown>> {
+  ctx: AgentContext;
+  intent: AgentIntent;
+  payload: P;
+}
+
+export type AgentErrorCode =
+  | 'VALIDATION'
+  | 'NOT_FOUND'
+  /** Não é falha: o agente precisa de desambiguação do usuário. */
+  | 'AMBIGUOUS'
+  | 'TIMEOUT'
+  | 'LLM'
+  | 'DB'
+  | 'RATE_LIMITED'
+  | 'UNKNOWN';
+
+export interface AgentError {
+  code: AgentErrorCode;
+  /** Interno. Vai para log e agent_runs.error_code — nunca direto para a UI. */
+  message: string;
+  retryable: boolean;
+}
+
+/** Recurso tocado por uma escrita — dispara revalidação no dashboard. */
+export type TouchedResource =
+  | 'bills'
+  | 'bill_occurrences'
+  | 'transactions'
+  | 'tasks'
+  | 'memories';
+
+/** Componente visual renderizado inline no chat (docs/design.md §4.2). */
+export type UiBlock =
+  | { type: 'transaction_card'; transactionId: string }
+  | { type: 'bill_card'; occurrenceId: string }
+  | { type: 'task_card'; taskId: string }
+  | { type: 'amount_comparison'; label: string; currentCents: number; baselineCents: number; baselineLabel: string }
+  | { type: 'category_bars'; periodLabel: string; items: Array<{ label: string; cents: number }> };
+
+/**
+ * Fato candidato a virar memória duradoura. O agente que emite NÃO decide se
+ * vira memória — quem decide é o Agente de Memória, depois da resposta.
+ */
+export interface MemoryCandidate {
+  content: string;
+  kind: 'preference' | 'fact' | 'decision' | 'pattern';
+  scope: 'user' | 'household';
+  source: 'chat' | 'correction' | 'derived';
+  sourceRef?: string;
+  confidence: number;
+}
+
+export type AgentResponse<D = Record<string, unknown>> =
+  | {
+      success: true;
+      data: D;
+      /**
+       * Texto factual e seco para o orquestrador redigir a resposta final.
+       * NÃO é a resposta ao usuário — não escrever em tom conversacional aqui.
+       */
+      summaryForOrchestrator: string;
+      blocks?: UiBlock[];
+      memoryCandidates?: MemoryCandidate[];
+      touched?: TouchedResource[];
+    }
+  | {
+      success: false;
+      error: AgentError;
+      /** O que dizer ao usuário sobre esta falha. Sem jargão técnico. */
+      summaryForOrchestrator: string;
+    };
+
+export type SpecialistAgent = (req: AgentRequest) => Promise<AgentResponse>;
+
+// ---------------------------------------------------------------------------
+// Plano de execução (saída do router)
+// ---------------------------------------------------------------------------
+
+export interface PlanStep {
+  id: string;
+  agent: AgentName;
+  intent: AgentIntent;
+  payload: Record<string, unknown>;
+  /** ids de passos que precisam terminar antes. Vazio = primeiro nível. */
+  dependsOn: string[];
+}
+
+export interface ExecutionPlan {
+  mode: 'direct' | 'delegate';
+  /** Só quando mode = 'direct'. */
+  directAnswer?: string;
+  steps: PlanStep[];
+  /** Por que roteou assim. Vai para agent_runs — é o que torna o golden set debugável. */
+  rationale: string;
+}
+
+export type StepStatus = 'success' | 'error' | 'timeout' | 'skipped_by_dependency';
+
+export interface StepResult {
+  step: PlanStep;
+  status: StepStatus;
+  response: AgentResponse | null;
+  durationMs: number;
+  retried: boolean;
+}
+
+/** Timeout por agente, em ms. Ver docs/architecture.md §3.4. */
+export const AGENT_TIMEOUT_MS: Record<AgentName, number> = {
+  bills: 10_000,
+  transactions: 12_000,
+  tasks: 10_000,
+  insights: 25_000,
+  memory: 8_000,
+};

@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# NUNCA commitar. Chaves vivem em env var da Vercel.
+.env
+.env.local
+.env*.local
+
+.vercel/
+.DS_Store
+coverage/
+.vitest/
