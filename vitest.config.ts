@@ -6,6 +6,15 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@tests': fileURLToPath(new URL('./tests', import.meta.url)),
+      /*
+       * `server-only` lança por desenho fora do runtime React Server, o que
+       * quebraria qualquer teste que importe um módulo de src/server/**.
+       * Apontar para o empty.js do próprio pacote — o mesmo que o Next usa sob
+       * a condição `react-server` — mantém a garantia onde ela vale (o bundler
+       * continua barrando import a partir de client component) sem tornar a
+       * lógica de servidor intestável.
+       */
+      'server-only': fileURLToPath(new URL('./node_modules/server-only/empty.js', import.meta.url)),
     },
   },
   test: {

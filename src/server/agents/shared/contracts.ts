@@ -125,11 +125,25 @@ export type TouchedResource =
   | 'tasks'
   | 'memories';
 
-/** Componente visual renderizado inline no chat (docs/design.md §4.2). */
+/**
+ * Componente visual renderizado inline no chat (docs/design.md §4.2).
+ *
+ * O bloco carrega os dados que precisa para renderizar, não só um id. Um bloco
+ * com apenas `occurrenceId` obrigaria o cliente a um segundo fetch para
+ * desenhar um card que o servidor acabou de montar — e a mostrar um esqueleto
+ * no meio da conversa enquanto isso.
+ */
 export type UiBlock =
-  | { type: 'transaction_card'; transactionId: string }
-  | { type: 'bill_card'; occurrenceId: string }
-  | { type: 'task_card'; taskId: string }
+  | {
+      type: 'bill_card';
+      occurrenceId: string;
+      title: string;
+      amountCents: number;
+      dueDate: string;
+      status: 'pending' | 'paid' | 'cancelled';
+    }
+  | { type: 'transaction_card'; transactionId: string; label: string; amountCents: number; occurredOn: string }
+  | { type: 'task_card'; taskId: string; title: string; dueDate: string | null }
   | { type: 'amount_comparison'; label: string; currentCents: number; baselineCents: number; baselineLabel: string }
   | { type: 'category_bars'; periodLabel: string; items: Array<{ label: string; cents: number }> };
 

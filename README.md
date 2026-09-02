@@ -10,7 +10,7 @@ Sistema multi-agente de assistência financeira para uso da família. Next.js + 
 | Fase | Escopo | Status |
 |---|---|---|
 | 1 | Fundação: setup, schema + RLS, auth, estrutura de pastas, plano de design, shell visual | **código pronto — falta validar contra um Supabase real** |
-| 2 | Orquestrador + Agente de Contas | não iniciada |
+| 2 | Orquestrador + Agente de Contas | **código pronto — falta validar com banco e chave da Anthropic** |
 | 3 | Agente de Gastos + avaliação de extração | não iniciada |
 | 4 | Agente de Tarefas | não iniciada |
 | 5 | Memória semântica (pgvector) | não iniciada |
@@ -130,10 +130,18 @@ npm run typecheck  # tsc --noEmit
 npm run lint       # eslint
 npm test           # testes unitários — rápidos, sem rede, sem LLM (CI)
 npm run test:rls   # isolamento de RLS — precisa de Supabase alcançável
-npm run eval       # avaliação de roteamento e extração — CHAMA MODELO, custa dinheiro
+npm run eval       # golden set de roteamento — CHAMA MODELO, custa dinheiro
+npm run db:check   # smoke test do setup do Supabase
 ```
 
 `npm test` é o único que roda sem credencial e sem custo. É o que entra no CI.
+
+O `eval` precisa de `ANTHROPIC_API_KEY`, mas **não** de Supabase: `buildPlan` foi separado da busca
+de contexto justamente para que validar uma mudança de prompt não exija infraestrutura de pé.
+
+> **Toda alteração em `src/server/agents/orchestrator/prompts.ts` exige rodar `npm run eval`.**
+> A acurácia do golden set não pode cair — é o único jeito de saber se um ajuste de redação melhorou
+> ou piorou o roteamento.
 
 ## Estrutura
 

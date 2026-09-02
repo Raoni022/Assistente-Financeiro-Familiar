@@ -1,0 +1,198 @@
+{
+  "$comment": "Golden set de roteamento. Toda mudança no prompt do orquestrador exige rodar `npm run eval` e comparar a acurácia. Referência temporal fixa: hoje é 2026-09-02, uma quarta-feira. Membros: Raoni, Camila.",
+  "today": "2026-09-02",
+  "members": ["Raoni", "Camila"],
+  "cases": [
+    {
+      "id": "create-01",
+      "message": "cadastra a conta de luz, 340 reais, todo dia 15",
+      "mode": "delegate",
+      "intents": ["bills.create"]
+    },
+    {
+      "id": "create-02",
+      "message": "preciso lembrar do aluguel de 2.100 que vence dia 5 de todo mês",
+      "mode": "delegate",
+      "intents": ["bills.create"]
+    },
+    {
+      "id": "create-03",
+      "message": "anota aí: internet 129,90, vence dia 8",
+      "mode": "delegate",
+      "intents": ["bills.create"]
+    },
+    {
+      "id": "create-04",
+      "message": "tem um boleto do dentista de 480 pra pagar dia 20 desse mês, é só uma vez",
+      "mode": "delegate",
+      "intents": ["bills.create"]
+    },
+    {
+      "id": "create-05",
+      "message": "a Camila ficou responsável pelo condomínio, 650 por mês no dia 10",
+      "mode": "delegate",
+      "intents": ["bills.create"]
+    },
+    {
+      "id": "create-06",
+      "message": "IPVA de 1.240 vence em 2027-01-15, é anual",
+      "mode": "delegate",
+      "intents": ["bills.create"]
+    },
+    {
+      "id": "upcoming-01",
+      "message": "o que vence essa semana?",
+      "mode": "delegate",
+      "intents": ["bills.upcoming"]
+    },
+    {
+      "id": "upcoming-02",
+      "message": "tem alguma conta chegando nos próximos dias?",
+      "mode": "delegate",
+      "intents": ["bills.upcoming"]
+    },
+    {
+      "id": "upcoming-03",
+      "message": "quanto eu tenho pra pagar até o fim do mês",
+      "mode": "delegate",
+      "intents": ["bills.upcoming"]
+    },
+    {
+      "id": "overdue-01",
+      "message": "tem alguma conta atrasada?",
+      "mode": "delegate",
+      "intents": ["bills.overdue"]
+    },
+    {
+      "id": "overdue-02",
+      "message": "esqueci de pagar alguma coisa?",
+      "mode": "delegate",
+      "intents": ["bills.overdue"]
+    },
+    {
+      "id": "list-01",
+      "message": "me mostra todas as contas cadastradas",
+      "mode": "delegate",
+      "intents": ["bills.list"]
+    },
+    {
+      "id": "list-02",
+      "message": "quais contas eu já paguei esse mês?",
+      "mode": "delegate",
+      "intents": ["bills.list"]
+    },
+    {
+      "id": "paid-01",
+      "message": "paguei a conta de luz",
+      "mode": "delegate",
+      "intents": ["bills.mark_paid"]
+    },
+    {
+      "id": "paid-02",
+      "message": "marca a internet como paga",
+      "mode": "delegate",
+      "intents": ["bills.mark_paid"]
+    },
+    {
+      "id": "paid-03",
+      "message": "acabei de quitar o condomínio, saiu 680 e não 650",
+      "mode": "delegate",
+      "intents": ["bills.mark_paid"]
+    },
+    {
+      "id": "update-01",
+      "message": "a conta de luz subiu, agora é 412",
+      "mode": "delegate",
+      "intents": ["bills.update"]
+    },
+    {
+      "id": "update-02",
+      "message": "muda o vencimento da internet pro dia 12",
+      "mode": "delegate",
+      "intents": ["bills.update"]
+    },
+    {
+      "id": "update-03",
+      "message": "o responsável pelo aluguel agora é o Raoni",
+      "mode": "delegate",
+      "intents": ["bills.update"]
+    },
+    {
+      "id": "delete-01",
+      "message": "cancela a assinatura da academia, não uso mais",
+      "mode": "delegate",
+      "intents": ["bills.delete"]
+    },
+    {
+      "id": "delete-02",
+      "message": "apaga a conta do dentista, foi cadastrada errada",
+      "mode": "delegate",
+      "intents": ["bills.delete"]
+    },
+    {
+      "id": "multi-01",
+      "message": "paguei a luz e me diz o que ainda falta pagar esse mês",
+      "mode": "delegate",
+      "intents": ["bills.mark_paid", "bills.upcoming"],
+      "$comment": "Dois passos. O segundo depende do primeiro para não listar a luz como pendente."
+    },
+    {
+      "id": "multi-02",
+      "message": "tem conta atrasada? e o que vence nos próximos 7 dias?",
+      "mode": "delegate",
+      "intents": ["bills.overdue", "bills.upcoming"],
+      "$comment": "Independentes — devem sair com dependsOn vazio e rodar em paralelo."
+    },
+    {
+      "id": "multi-03",
+      "message": "cadastra o seguro do carro, 890, dia 25, e me mostra tudo que vence nesse mês",
+      "mode": "delegate",
+      "intents": ["bills.create", "bills.upcoming"]
+    },
+    {
+      "id": "direct-01",
+      "message": "oi",
+      "mode": "direct",
+      "intents": []
+    },
+    {
+      "id": "direct-02",
+      "message": "valeu, obrigado",
+      "mode": "direct",
+      "intents": []
+    },
+    {
+      "id": "direct-03",
+      "message": "o que você consegue fazer?",
+      "mode": "direct",
+      "intents": []
+    },
+    {
+      "id": "direct-04",
+      "message": "gastei 80 reais no mercado hoje",
+      "mode": "direct",
+      "intents": [],
+      "$comment": "Gasto já ocorrido não é conta a pagar. O agente de Gastos é a Fase 3 — até lá o certo é dizer que ainda não faz, não forçar para bills."
+    },
+    {
+      "id": "direct-05",
+      "message": "almoçamos fora ontem, 140 reais",
+      "mode": "direct",
+      "intents": [],
+      "$comment": "Mesmo caso: relato de gasto, não cadastro de conta."
+    },
+    {
+      "id": "direct-06",
+      "message": "vale a pena investir em CDB?",
+      "mode": "direct",
+      "intents": [],
+      "$comment": "Fora de escopo. Não deve virar consulta a nenhum agente."
+    },
+    {
+      "id": "direct-07",
+      "message": "qual o sentido da vida",
+      "mode": "direct",
+      "intents": []
+    }
+  ]
+}
