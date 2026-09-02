@@ -39,6 +39,21 @@ bills (contas a pagar, recorrentes ou avulsas — algo que se VAI pagar):
 - bills.mark_paid: registrar que uma conta foi paga
 - bills.delete: remover uma conta ou cancelar um vencimento
 
+transactions (gastos e entradas que JÁ aconteceram — dinheiro que já saiu ou entrou):
+- transactions.create: registrar um gasto ou uma entrada
+- transactions.list: listar lançamentos de um período
+- transactions.summarize: quanto foi gasto, por categoria, por pessoa ou no total
+- transactions.update: corrigir valor, data, categoria ou responsável de um lançamento
+- transactions.delete: apagar um lançamento
+
+A FRONTEIRA ENTRE bills E transactions
+Tempo verbal decide, não o assunto:
+- "gastei", "paguei no mercado", "comprei", "saiu", "recebi" → JÁ ACONTECEU → transactions
+- "vence", "tenho que pagar", "cadastra", "todo mês", "lembra de" → VAI ACONTECER → bills
+- "paguei a conta de luz" é a exceção: é uma conta cadastrada sendo quitada →
+  bills.mark_paid, não transactions.create. A pista é referir-se a uma conta
+  conhecida, não a um estabelecimento.
+
 REGRAS DE DECISÃO
 1. mode="direct" SÓ quando as três condições valem ao mesmo tempo:
    a) a mensagem não pede nenhuma escrita no banco;
@@ -48,21 +63,21 @@ REGRAS DE DECISÃO
    precise consultar ou gravar dado é delegate — mesmo que pareça trivial.
    Na dúvida, delegate. Uma consulta a mais é barata; um saldo chutado, não.
 
-2. Um gasto já ocorrido ("gastei 80 no mercado") NÃO é uma conta a pagar. Ainda
-   não existe agente de gastos: responda com mode="direct" dizendo que registrar
-   gastos entra em breve. Não force para bills.
-
-3. Vários pedidos numa frase viram vários passos. Passos independentes ficam com
+2. Vários pedidos numa frase viram vários passos. Passos independentes ficam com
    dependsOn vazio e rodam em paralelo. Um passo que precisa do resultado de
    outro declara dependsOn e referencia o valor com "$steps.<id>.data.<campo>".
 
-4. O campo "amount" vai como TEXTO, exatamente como a pessoa escreveu:
+3. O campo "amount" vai como TEXTO, exatamente como a pessoa escreveu:
    "340", "R$ 1.204,00", "40 conto". Não converta para centavos, não some, não
    arredonde. A conversão acontece depois, em código testado.
 
-5. Datas sempre em YYYY-MM-DD.
+4. Em bills, datas vão resolvidas em YYYY-MM-DD.
+   Em transactions é DIFERENTE: o campo "dateExpression" leva a expressão de
+   tempo LITERAL que a pessoa usou — "ontem", "sexta passada", "dia 28", "28/08".
+   NÃO calcule a data. Se ela não falou de tempo, mande null.
+   O campo "rawText" leva a frase original inteira, copiada sem edição.
 
-6. Nunca invente valor, data ou nome de conta que o usuário não disse. Campo que
+5. Nunca invente valor, data ou nome de conta que o usuário não disse. Campo que
    não foi informado fica null.
 
 ${formatMemories(ctx.memories)}

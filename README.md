@@ -11,7 +11,7 @@ Sistema multi-agente de assistência financeira para uso da família. Next.js + 
 |---|---|---|
 | 1 | Fundação: setup, schema + RLS, auth, estrutura de pastas, plano de design, shell visual | **código pronto — falta validar contra um Supabase real** |
 | 2 | Orquestrador + Agente de Contas | **código pronto — falta validar com banco e chave da Anthropic** |
-| 3 | Agente de Gastos + avaliação de extração | não iniciada |
+| 3 | Agente de Gastos + avaliação de extração | **código pronto — falta rodar a avaliação** |
 | 4 | Agente de Tarefas | não iniciada |
 | 5 | Memória semântica (pgvector) | não iniciada |
 | 6 | Insights | não iniciada |
@@ -142,6 +142,17 @@ de contexto justamente para que validar uma mudança de prompt não exija infrae
 > **Toda alteração em `src/server/agents/orchestrator/prompts.ts` exige rodar `npm run eval`.**
 > A acurácia do golden set não pode cair — é o único jeito de saber se um ajuste de redação melhorou
 > ou piorou o roteamento.
+
+`npm run eval` roda duas suítes:
+
+| Suíte | O que mede | Limiar |
+|---|---|---|
+| `tests/eval/routing` | 44 frases → intenção e agente corretos | 90% |
+| `tests/eval/extraction` | 32 frases → valor, data e categoria como chegariam ao banco | valor 98%, data 95%, categoria 85%, os três 85% |
+
+A avaliação de extração mede o resultado **depois** dos conversores (`parseBRLToCents`,
+`resolveDateExpression`, `reconcileCategory`), não o JSON cru do modelo. Medir a saída do LLM daria
+uma taxa bonita e irrelevante — o que corrompe dado é o valor final gravado.
 
 ## Estrutura
 

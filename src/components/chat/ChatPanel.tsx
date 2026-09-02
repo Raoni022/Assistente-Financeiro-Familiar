@@ -20,7 +20,15 @@ interface BillCardBlock {
   status: 'pending' | 'paid' | 'cancelled';
 }
 
-type Block = BillCardBlock | { type: string; [key: string]: unknown };
+interface TransactionCardBlock {
+  type: 'transaction_card';
+  transactionId: string;
+  label: string;
+  amountCents: number;
+  occurredOn: string;
+}
+
+type Block = BillCardBlock | TransactionCardBlock | { type: string; [key: string]: unknown };
 
 interface Message {
   id: string;
@@ -34,7 +42,7 @@ const GREETING: Message = {
   id: 'greeting',
   role: 'assistant',
   content:
-    'Oi. Posso cadastrar contas, dizer o que vence e marcar como paga. Fale como falaria com alguém: "cadastra a conta de luz, 340 reais, todo dia 15".',
+    'Oi. Posso cadastrar contas, registrar gastos e dizer para onde o dinheiro foi. Fale como falaria com alguém: "gastei 80 no mercado hoje" ou "cadastra a conta de luz, 340, todo dia 15".',
 };
 
 export function ChatPanel({ displayName }: { displayName: string }) {
@@ -249,11 +257,15 @@ function MessageBubble({ message, name }: { message: Message; name: string }) {
         <p className={`whitespace-pre-wrap text-[15px] ${message.failed ? 'text-negative' : ''}`}>
           {message.id === 'greeting' ? `Oi, ${name}. ${message.content.slice(4)}` : message.content}
         </p>
-        {message.blocks?.map((block, index) =>
-          block.type === 'bill_card' ? (
-            <BillCard key={`${block['occurrenceId']}-${index}`} block={block as BillCardBlock} />
-          ) : null,
-        )}
+        {message.blocks?.map((block, index) => {
+          if (block.type === 'bill_card') {
+            return <BillCard key={`bill-${index}`} block={block as BillCardBlock} />;
+          }
+          if (block.type === 'transaction_card') {
+            return <TransactionCard key={`tx-${index}`} block={block as TransactionCardBlock} />;
+          }
+          return null;
+        })}
       </div>
     </div>
   );
@@ -273,6 +285,20 @@ function BillCard({ block }: { block: BillCardBlock }) {
         {block.status === 'paid' ? 'paga · ' : 'vence '}
         {shortDate(block.dueDate)}
       </p>
+    </div>
+  );
+}
+
+function TransactionCard({ block }: { block: TransactionCardBlock }) {
+  return (
+    <div className="mt-2 rounded-[8px] border border-line bg-surface px-3 py-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="truncate text-[15px]">{block.label}</span>
+        <span className="money shrink-0 text-[15px] font-medium">
+          {formatCents(block.amountCents)}
+        </span>
+      </div>
+      <p className="mt-0.5 text-[13px] text-dim">{shortDate(block.occurredOn)}</p>
     </div>
   );
 }
