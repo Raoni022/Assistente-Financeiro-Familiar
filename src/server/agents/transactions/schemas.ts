@@ -36,7 +36,13 @@ const dateExpression = z
 export const TransactionsCreateSchema = z.object({
   amount: amountText,
   dateExpression,
-  kind: z.enum(['expense', 'income']).default('expense'),
+  kind: z
+    .enum(['expense', 'income'])
+    .default('expense')
+    .describe(
+      'Use "income" quando o dinheiro ENTROU: "recebi", "caiu", "me pagaram", ' +
+        '"entrou", salário, freela, reembolso, venda. "expense" para todo o resto.',
+    ),
   categoryKey: z
     .string()
     .max(32)

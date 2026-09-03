@@ -41,6 +41,7 @@ const context: RouterContext = {
   userName: 'Raoni',
   members: ['Raoni', 'Camila'],
   categoryKeys: CATEGORY_KEYS,
+  activeBills: dataset.activeBills,
   memories: [],
   conversation: { summary: null, recentTurns: [] },
 };
@@ -51,20 +52,32 @@ interface Extracted {
   categoryKey: string | null;
   kind: string;
   routed: boolean;
+  /** Para onde o roteador mandou, quando não foi para transactions.create. */
+  actualIntents: string[];
 }
 
 /** Roda a frase pelo caminho real: roteador → schema → conversores. */
 async function extract(message: string): Promise<Extracted> {
   const { plan } = await buildPlan(message, context);
 
+  const actualIntents = plan.steps.map((candidate) => candidate.intent);
   const step = plan.steps.find((candidate) => candidate.intent === 'transactions.create');
   if (!step) {
-    return { amountCents: null, occurredOn: null, categoryKey: null, kind: 'expense', routed: false };
+    // Saber que não roteou não basta: sem saber para ONDE foi, o relatório não
+    // diz o que corrigir. Custou uma rodada inteira descobrir isso.
+    return {
+      amountCents: null, occurredOn: null, categoryKey: null,
+      kind: 'expense', routed: false,
+      actualIntents: actualIntents.length > 0 ? actualIntents : [`direct: ${plan.rationale.slice(0, 80)}`],
+    };
   }
 
   const parsed = TransactionsCreateSchema.safeParse(step.payload);
   if (!parsed.success) {
-    return { amountCents: null, occurredOn: null, categoryKey: null, kind: 'expense', routed: true };
+    return {
+      amountCents: null, occurredOn: null, categoryKey: null,
+      kind: 'expense', routed: true, actualIntents,
+    };
   }
 
   const payload = parsed.data;
@@ -84,6 +97,7 @@ async function extract(message: string): Promise<Extracted> {
     categoryKey: category.key,
     kind: payload.kind,
     routed: true,
+    actualIntents,
   };
 }
 
@@ -93,7 +107,22 @@ const misses: string[] = [];
 describe.skipIf(!configured)('extração de gastos — taxa de acerto', () => {
   for (const testCase of dataset.cases) {
     it(`${testCase.id}: ${testCase.message}`, { timeout: 60_000 }, async () => {
-      const got = await extract(testCase.message);
+      /*
+       * Exceção também é resultado de medição.
+       *
+       * Na primeira execução, "netflix 55,90" estourou um TypeError dentro do
+       * roteador e o caso saiu do relatório inteiro — o instrumento perdeu
+       * justamente o caso mais interessante. Capturar aqui mantém a falha
+       * visível e contabilizada.
+       */
+      let got: Extracted;
+      try {
+        got = await extract(testCase.message);
+      } catch (error) {
+        misses.push(`  ${testCase.id} "${testCase.message}"
+    EXCEÇÃO: ${(error as Error).message}`);
+        throw error;
+      }
 
       const expectedCategories = testCase.categories as Array<string | null>;
       const expectedKind = (testCase as { kind?: string }).kind ?? 'expense';
@@ -115,7 +144,9 @@ describe.skipIf(!configured)('extração de gastos — taxa de acerto', () => {
             `    valor:     ${amountOk ? 'ok' : `${got.amountCents} ≠ ${testCase.amountCents}`}\n` +
             `    data:      ${dateOk ? 'ok' : `${got.occurredOn} ≠ ${testCase.occurredOn}`}\n` +
             `    categoria: ${categoryOk ? 'ok' : `${got.categoryKey} ∉ [${expectedCategories.join(', ')}]`}\n` +
-            `    tipo:      ${kindOk ? 'ok' : `${got.kind} ≠ ${expectedKind}`}`,
+            `    tipo:      ${kindOk ? 'ok' : `${got.kind} ≠ ${expectedKind}`}` +
+            (got.routed ? '' : `
+    roteou p/: ${got.actualIntents.join(', ')}`),
         );
       }
 

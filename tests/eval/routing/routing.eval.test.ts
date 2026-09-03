@@ -33,6 +33,7 @@ const context: RouterContext = {
   userName: 'Raoni',
   members: goldenSet.members,
   categoryKeys: CATEGORY_KEYS,
+  activeBills: goldenSet.activeBills,
   memories: [],
   conversation: { summary: null, recentTurns: [] },
 };

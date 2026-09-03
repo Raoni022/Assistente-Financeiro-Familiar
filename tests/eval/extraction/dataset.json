@@ -1,38 +1,309 @@
 {
   "$comment": "Avaliação de extração do Agente de Gastos. Mede o que de fato chegaria ao banco: a frase passa pelo roteador e o payload resultante passa pelos MESMOS conversores do agente (parseBRLToCents, resolveDateExpression, reconcileCategory). Medir a saída crua do modelo mediria a coisa errada. Referência: hoje é 2026-09-02, uma quarta-feira.",
   "today": "2026-09-02",
+  "activeBills": [],
+  "$activeBillsComment": "Nenhuma conta cadastrada, de proposito: assim 'paguei 32 de spotify' e inequivocamente um gasto avulso, e nao a quitacao de uma assinatura cadastrada. Sem essa lista a frase e ambigua e o caso de teste seria mal-posto.",
   "cases": [
-    { "id": "x01", "message": "gastei 80 reais no mercado hoje", "amountCents": 8000, "occurredOn": "2026-09-02", "categories": ["mercado"] },
-    { "id": "x02", "message": "paguei 45,90 no ifood ontem", "amountCents": 4590, "occurredOn": "2026-09-01", "categories": ["delivery"] },
-    { "id": "x03", "message": "80 no mercado", "amountCents": 8000, "occurredOn": "2026-09-02", "categories": ["mercado"], "$comment": "Sem menção de tempo — assumir hoje é seguro." },
-    { "id": "x04", "message": "gastei 120 de gasolina sexta passada", "amountCents": 12000, "occurredOn": "2026-08-28", "categories": ["combustivel"] },
-    { "id": "x05", "message": "comprei remédio na farmácia, 32,50", "amountCents": 3250, "occurredOn": "2026-09-02", "categories": ["farmacia", "saude"] },
-    { "id": "x06", "message": "almoçamos fora anteontem, 64 reais", "amountCents": 6400, "occurredOn": "2026-08-31", "categories": ["restaurante"] },
-    { "id": "x07", "message": "uber pro trabalho, 23,40", "amountCents": 2340, "occurredOn": "2026-09-02", "categories": ["transporte"] },
-    { "id": "x08", "message": "gastei 250 no supermercado dia 28", "amountCents": 25000, "occurredOn": "2026-08-28", "categories": ["mercado"] },
-    { "id": "x09", "message": "40 conto de lanche na padaria", "amountCents": 4000, "occurredOn": "2026-09-02", "categories": ["restaurante"], "$comment": "Gíria de valor — o parser cobre 'conto', 'pila', 'pau'." },
-    { "id": "x10", "message": "paguei 1.350 de curso semana passada", "amountCents": 135000, "occurredOn": "2026-08-26", "categories": ["educacao"] },
-    { "id": "x11", "message": "cinema ontem, 78", "amountCents": 7800, "occurredOn": "2026-09-01", "categories": ["lazer"] },
-    { "id": "x12", "message": "ração do cachorro 145,90", "amountCents": 14590, "occurredOn": "2026-09-02", "categories": ["pet"] },
-    { "id": "x13", "message": "12/08 gastei 300 em roupa", "amountCents": 30000, "occurredOn": "2026-08-12", "categories": ["vestuario"] },
-    { "id": "x14", "message": "netflix 55,90", "amountCents": 5590, "occurredOn": "2026-09-02", "categories": ["assinatura"] },
-    { "id": "x15", "message": "consulta no dentista 180 na terça", "amountCents": 18000, "occurredOn": "2026-09-01", "categories": ["saude"] },
-    { "id": "x16", "message": "estacionamento 15 reais", "amountCents": 1500, "occurredOn": "2026-09-02", "categories": ["transporte"] },
-    { "id": "x17", "message": "500 reais de material escolar dia 1", "amountCents": 50000, "occurredOn": "2026-09-01", "categories": ["educacao"] },
-    { "id": "x18", "message": "gastei 89,90 numa faxina", "amountCents": 8990, "occurredOn": "2026-09-02", "categories": ["casa"] },
-    { "id": "x19", "message": "R$ 1.204,00 de móveis semana retrasada", "amountCents": 120400, "occurredOn": "2026-08-19", "categories": ["casa"] },
-    { "id": "x20", "message": "recebi 4800 de freela ontem", "amountCents": 480000, "occurredOn": "2026-09-01", "kind": "income", "categories": ["salario", "outros", null], "$comment": "Entrada, não gasto. A categoria é legitimamente ambígua." },
-    { "id": "x21", "message": "abasteci 210 no posto na segunda", "amountCents": 21000, "occurredOn": "2026-08-31", "categories": ["combustivel"] },
-    { "id": "x22", "message": "a Camila gastou 67 na drogaria hoje de manhã", "amountCents": 6700, "occurredOn": "2026-09-02", "categories": ["farmacia"] },
-    { "id": "x23", "message": "paguei 32 de spotify", "amountCents": 3200, "occurredOn": "2026-09-02", "categories": ["assinatura"] },
-    { "id": "x24", "message": "feira da semana, 187,30", "amountCents": 18730, "occurredOn": "2026-09-02", "categories": ["mercado"] },
-    { "id": "x25", "message": "gastei 55 com o veterinário sábado", "amountCents": 5500, "occurredOn": "2026-08-29", "categories": ["pet", "saude"] },
-    { "id": "x26", "message": "2026-07-15 paguei 940 de terapia", "amountCents": 94000, "occurredOn": "2026-07-15", "categories": ["saude"] },
-    { "id": "x27", "message": "pedimos comida ontem à noite, 91,40", "amountCents": 9140, "occurredOn": "2026-09-01", "categories": ["delivery", "restaurante"] },
-    { "id": "x28", "message": "comprei um livro por 62", "amountCents": 6200, "occurredOn": "2026-09-02", "categories": ["educacao", "lazer"] },
-    { "id": "x29", "message": "300 pila de peça pro carro mês passado", "amountCents": 30000, "occurredOn": "2026-08-02", "categories": ["transporte", "outros", null], "$comment": "Peça de carro não tem categoria óbvia na lista — aceitar null é honesto." },
-    { "id": "x30", "message": "gastei 1.100,50 com a reforma do banheiro sexta", "amountCents": 110050, "occurredOn": "2026-08-28", "categories": ["casa"] },
-    { "id": "x31", "message": "passagem de ônibus 5,40", "amountCents": 540, "occurredOn": "2026-09-02", "categories": ["transporte"] },
-    { "id": "x32", "message": "teatro com as crianças quinta passada, 240", "amountCents": 24000, "occurredOn": "2026-08-27", "categories": ["lazer"] }
+    {
+      "id": "x01",
+      "message": "gastei 80 reais no mercado hoje",
+      "amountCents": 8000,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "mercado"
+      ]
+    },
+    {
+      "id": "x02",
+      "message": "paguei 45,90 no ifood ontem",
+      "amountCents": 4590,
+      "occurredOn": "2026-09-01",
+      "categories": [
+        "delivery"
+      ]
+    },
+    {
+      "id": "x03",
+      "message": "80 no mercado",
+      "amountCents": 8000,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "mercado"
+      ],
+      "$comment": "Sem menção de tempo — assumir hoje é seguro."
+    },
+    {
+      "id": "x04",
+      "message": "gastei 120 de gasolina sexta passada",
+      "amountCents": 12000,
+      "occurredOn": "2026-08-28",
+      "categories": [
+        "combustivel"
+      ]
+    },
+    {
+      "id": "x05",
+      "message": "comprei remédio na farmácia, 32,50",
+      "amountCents": 3250,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "farmacia",
+        "saude"
+      ]
+    },
+    {
+      "id": "x06",
+      "message": "almoçamos fora anteontem, 64 reais",
+      "amountCents": 6400,
+      "occurredOn": "2026-08-31",
+      "categories": [
+        "restaurante"
+      ]
+    },
+    {
+      "id": "x07",
+      "message": "uber pro trabalho, 23,40",
+      "amountCents": 2340,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "transporte"
+      ]
+    },
+    {
+      "id": "x08",
+      "message": "gastei 250 no supermercado dia 28",
+      "amountCents": 25000,
+      "occurredOn": "2026-08-28",
+      "categories": [
+        "mercado"
+      ]
+    },
+    {
+      "id": "x09",
+      "message": "40 conto de lanche na padaria",
+      "amountCents": 4000,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "restaurante"
+      ],
+      "$comment": "Gíria de valor — o parser cobre 'conto', 'pila', 'pau'."
+    },
+    {
+      "id": "x10",
+      "message": "paguei 1.350 de curso semana passada",
+      "amountCents": 135000,
+      "occurredOn": "2026-08-26",
+      "categories": [
+        "educacao"
+      ]
+    },
+    {
+      "id": "x11",
+      "message": "cinema ontem, 78",
+      "amountCents": 7800,
+      "occurredOn": "2026-09-01",
+      "categories": [
+        "lazer"
+      ]
+    },
+    {
+      "id": "x12",
+      "message": "ração do cachorro 145,90",
+      "amountCents": 14590,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "pet"
+      ]
+    },
+    {
+      "id": "x13",
+      "message": "12/08 gastei 300 em roupa",
+      "amountCents": 30000,
+      "occurredOn": "2026-08-12",
+      "categories": [
+        "vestuario"
+      ]
+    },
+    {
+      "id": "x14",
+      "message": "netflix 55,90",
+      "amountCents": 5590,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "assinatura"
+      ]
+    },
+    {
+      "id": "x15",
+      "message": "consulta no dentista 180 na terça",
+      "amountCents": 18000,
+      "occurredOn": "2026-09-01",
+      "categories": [
+        "saude"
+      ]
+    },
+    {
+      "id": "x16",
+      "message": "estacionamento 15 reais",
+      "amountCents": 1500,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "transporte"
+      ]
+    },
+    {
+      "id": "x17",
+      "message": "500 reais de material escolar dia 1",
+      "amountCents": 50000,
+      "occurredOn": "2026-09-01",
+      "categories": [
+        "educacao"
+      ]
+    },
+    {
+      "id": "x18",
+      "message": "gastei 89,90 numa faxina",
+      "amountCents": 8990,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "casa"
+      ]
+    },
+    {
+      "id": "x19",
+      "message": "R$ 1.204,00 de móveis semana retrasada",
+      "amountCents": 120400,
+      "occurredOn": "2026-08-19",
+      "categories": [
+        "casa"
+      ]
+    },
+    {
+      "id": "x20",
+      "message": "recebi 4800 de freela ontem",
+      "amountCents": 480000,
+      "occurredOn": "2026-09-01",
+      "kind": "income",
+      "categories": [
+        "salario",
+        "outros",
+        null
+      ],
+      "$comment": "Entrada, não gasto. A categoria é legitimamente ambígua."
+    },
+    {
+      "id": "x21",
+      "message": "abasteci 210 no posto na segunda",
+      "amountCents": 21000,
+      "occurredOn": "2026-08-31",
+      "categories": [
+        "combustivel"
+      ]
+    },
+    {
+      "id": "x22",
+      "message": "a Camila gastou 67 na drogaria hoje de manhã",
+      "amountCents": 6700,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "farmacia"
+      ]
+    },
+    {
+      "id": "x23",
+      "message": "paguei 32 de spotify",
+      "amountCents": 3200,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "assinatura"
+      ]
+    },
+    {
+      "id": "x24",
+      "message": "feira da semana, 187,30",
+      "amountCents": 18730,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "mercado"
+      ]
+    },
+    {
+      "id": "x25",
+      "message": "gastei 55 com o veterinário sábado",
+      "amountCents": 5500,
+      "occurredOn": "2026-08-29",
+      "categories": [
+        "pet",
+        "saude"
+      ]
+    },
+    {
+      "id": "x26",
+      "message": "2026-07-15 paguei 940 de terapia",
+      "amountCents": 94000,
+      "occurredOn": "2026-07-15",
+      "categories": [
+        "saude"
+      ]
+    },
+    {
+      "id": "x27",
+      "message": "pedimos comida ontem à noite, 91,40",
+      "amountCents": 9140,
+      "occurredOn": "2026-09-01",
+      "categories": [
+        "delivery",
+        "restaurante"
+      ]
+    },
+    {
+      "id": "x28",
+      "message": "comprei um livro por 62",
+      "amountCents": 6200,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "educacao",
+        "lazer"
+      ]
+    },
+    {
+      "id": "x29",
+      "message": "300 pila de peça pro carro mês passado",
+      "amountCents": 30000,
+      "occurredOn": "2026-08-02",
+      "categories": [
+        "transporte",
+        "outros",
+        null
+      ],
+      "$comment": "Peça de carro não tem categoria óbvia na lista — aceitar null é honesto."
+    },
+    {
+      "id": "x30",
+      "message": "gastei 1.100,50 com a reforma do banheiro sexta",
+      "amountCents": 110050,
+      "occurredOn": "2026-08-28",
+      "categories": [
+        "casa"
+      ]
+    },
+    {
+      "id": "x31",
+      "message": "passagem de ônibus 5,40",
+      "amountCents": 540,
+      "occurredOn": "2026-09-02",
+      "categories": [
+        "transporte"
+      ]
+    },
+    {
+      "id": "x32",
+      "message": "teatro com as crianças quinta passada, 240",
+      "amountCents": 24000,
+      "occurredOn": "2026-08-27",
+      "categories": [
+        "lazer"
+      ]
+    }
   ]
 }

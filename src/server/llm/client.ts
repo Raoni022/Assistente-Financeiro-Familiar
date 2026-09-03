@@ -49,9 +49,11 @@ function model(slot: ModelSlot): ChatAnthropic {
 }
 
 /**
- * Transporte, 429 e 5xx são transitórios e valem uma segunda tentativa. Saída
- * que não bate com o schema NÃO é — o mesmo prompt com temperatura 0 vai errar
- * de novo, e retentar só queima dinheiro.
+ * Transporte, 429 e 5xx são transitórios e valem uma segunda tentativa.
+ *
+ * Saída fora do schema também passou a valer: enquanto havia `temperature: 0`,
+ * repetir o mesmo prompt daria o mesmo erro. A família Claude 5 não aceita esse
+ * parâmetro, então a saída varia entre chamadas e a retentativa tem chance real.
  */
 function isRetryable(error: unknown): boolean {
   const status = (error as { status?: number; response?: { status?: number } } | null)?.status
@@ -100,6 +102,22 @@ export async function callStructured<S extends z.ZodType>(
       parsed: z.infer<S>;
       raw?: { usage_metadata?: { input_tokens?: number; output_tokens?: number } };
     };
+
+    /*
+     * `includeRaw` faz o LangChain devolver `parsed: null` quando a saída não
+     * bate com o schema, em vez de lançar. Sem esta checagem, o null viaja para
+     * dentro do chamador e estoura como TypeError em algum ponto distante — foi
+     * exatamente o que a avaliação de extração pegou em "netflix 55,90".
+     */
+    if (response.parsed === null || response.parsed === undefined) {
+      throw new LlmError(
+        `${MODELS[slot]} devolveu saída fora do schema ${schemaName}.`,
+        // Retentável agora, ao contrário do que este arquivo dizia antes: sem
+        // poder fixar temperature na família 5, a saída é não-determinística e
+        // uma segunda tentativa do mesmo prompt tem chance real de acertar.
+        true,
+      );
+    }
 
     const usage = response.raw?.usage_metadata;
 

@@ -5,6 +5,16 @@
     "Raoni",
     "Camila"
   ],
+  "activeBills": [
+    "Conta de luz",
+    "Internet",
+    "Aluguel",
+    "Condomínio",
+    "Cartão",
+    "Academia",
+    "Dentista",
+    "Streaming"
+  ],
   "cases": [
     {
       "id": "create-01",

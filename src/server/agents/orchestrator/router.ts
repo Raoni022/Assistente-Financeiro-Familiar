@@ -49,9 +49,10 @@ export async function routePlan(
 ): Promise<ExecutionPlan> {
   const supabase = await createClient();
 
-  const [{ data: profiles }, { data: categories }] = await Promise.all([
+  const [{ data: profiles }, { data: categories }, { data: bills }] = await Promise.all([
     supabase.from('profiles').select('display_name'),
     supabase.from('categories').select('key'),
+    supabase.from('bills').select('title').eq('is_active', true).limit(60),
   ]);
 
   const routerContext: RouterContext = {
@@ -60,6 +61,7 @@ export async function routePlan(
     userName: (profiles ?? []).length > 0 ? 'membro da casa' : 'você',
     members: (profiles ?? []).map((row) => row.display_name as string),
     categoryKeys: (categories ?? []).map((row) => row.key as string),
+    activeBills: (bills ?? []).map((row) => row.title as string),
     memories: ctx.memories,
     conversation: ctx.conversationContext,
   };
@@ -71,7 +73,16 @@ export async function routePlan(
   let outputTokens: number | null = null;
 
   try {
-    const result = await buildPlan(userMessage, routerContext);
+    let result;
+    try {
+      result = await buildPlan(userMessage, routerContext);
+    } catch (error) {
+      // Uma única retentativa, e só para erro transitório. Sem plano não há
+      // resposta nenhuma, então vale mais que numa chamada de agente comum.
+      if (!(error instanceof LlmError) || !error.retryable) throw error;
+      console.warn('[router] primeira tentativa falhou, repetindo:', error.message);
+      result = await buildPlan(userMessage, routerContext);
+    }
     inputTokens = result.inputTokens;
     outputTokens = result.outputTokens;
     return result.plan;

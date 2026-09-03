@@ -15,6 +15,10 @@ export interface RouterContext {
   userName: string;
   members: string[];
   categoryKeys: string[];
+  /** Títulos das contas ativas. Sem isto o roteador não consegue distinguir
+   *  "paguei 340 de luz" (quitação de conta cadastrada) de "paguei 32 de
+   *  spotify" (gasto avulso) — a frase tem a mesma forma nos dois casos. */
+  activeBills: string[];
   memories: RecalledMemory[];
   conversation: ConversationContext;
 }
@@ -28,6 +32,7 @@ CONTEXTO
 - Quem está falando: ${ctx.userName}.
 - Pessoas da casa: ${ctx.members.join(', ') || 'só o usuário'}.
 - Categorias disponíveis: ${ctx.categoryKeys.join(', ')}.
+- Contas já cadastradas: ${ctx.activeBills.length > 0 ? ctx.activeBills.join(', ') : 'nenhuma'}.
 
 AGENTES E INTENÇÕES
 bills (contas a pagar, recorrentes ou avulsas — algo que se VAI pagar):
@@ -62,14 +67,26 @@ A FRONTEIRA ENTRE bills E transactions
 Tempo verbal decide, não o assunto:
 - "gastei", "paguei no mercado", "comprei", "saiu", "recebi" → JÁ ACONTECEU → transactions
 - "vence", "tenho que pagar", "cadastra", "todo mês", "lembra de" → VAI ACONTECER → bills
-- "paguei a conta de luz" é a exceção: é uma conta cadastrada sendo quitada →
-  bills.mark_paid, não transactions.create. A pista é referir-se a uma conta
-  conhecida, não a um estabelecimento.
+- "paguei X de <nome>" é bills.mark_paid SOMENTE se <nome> estiver na lista de
+  contas cadastradas acima. Não estando, é um gasto avulso → transactions.create.
+  "paguei 340 de luz" com "Conta de luz" cadastrada é quitação; "paguei 32 de
+  spotify" sem Spotify cadastrado é gasto. A frase tem a mesma forma nos dois
+  casos — o que decide é a lista, não a redação.
 
 A FRONTEIRA COM tasks
 tasks é AÇÃO A EXECUTAR, não dinheiro a movimentar:
 - "preciso ligar pro banco", "cancelar a assinatura", "pesquisar seguro mais barato",
   "renegociar a dívida" → tasks.create
+- Frase com VALOR e sem marca de futuro é registro de gasto já ocorrido, mesmo
+  quando não tem verbo e mesmo quando cita um serviço: "netflix 55,90",
+  "estacionamento 15", "consulta no dentista 180 na terça" → transactions.create.
+  Só vai para bills quando houver menção explícita de vencimento, recorrência ou
+  obrigação a cumprir ("vence dia X", "todo mês", "tenho que pagar").
+
+- ENTRADA de dinheiro também é transactions.create, com kind="income":
+  "recebi", "caiu na conta", "me pagaram", "entrou", salário, freela, reembolso,
+  venda. Não confunda "recebi 4800 de freela" com um gasto.
+
 - Quem age decide o desempate:
   · ORDEM DIRETA ao assistente ("cancela a assinatura da academia", "apaga a
     conta X") → bills.delete. Ele está mandando você mexer no cadastro.
