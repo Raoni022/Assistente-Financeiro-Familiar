@@ -5,14 +5,18 @@ Sistema multi-agente de assistência financeira para uso da família. Next.js + 
 - **Arquitetura, grafo de agentes, contratos e modelo de dados:** [`docs/architecture.md`](docs/architecture.md)
 - **Sistema de design, paleta, tipografia e wireframes:** [`docs/design.md`](docs/design.md)
 
-## Estado atual
+## Estado atual (pausa de desenvolvimento)
+
+O desenvolvimento foi pausado aqui de propósito, para não continuar consumindo crédito de API em
+avaliações. Tudo abaixo é o que existe **em código**, e o que ainda depende de rodar algo (banco ou
+modelo) para ser confirmado.
 
 | Fase | Escopo | Status |
 |---|---|---|
-| 1 | Fundação: setup, schema + RLS, auth, estrutura de pastas, plano de design, shell visual | **código pronto — falta validar contra um Supabase real** |
-| 2 | Orquestrador + Agente de Contas | **roteamento medido: 53/54 (98,1%)** — falta validar com banco |
-| 3 | Agente de Gastos + avaliação de extração | **código pronto — falta rodar a avaliação** |
-| 4 | Agente de Tarefas | **código pronto — falta validar com banco e chave** |
+| 1 | Fundação: setup, schema + RLS, auth, shell visual | código completo — **RLS não testada contra banco real** |
+| 2 | Orquestrador + Agente de Contas | código completo — **roteamento medido: 53/54 (98,1%)** |
+| 3 | Agente de Gastos + avaliação de extração | código completo — **extração medida uma vez (90,6%); três correções aplicadas depois não foram remedidas** |
+| 4 | Agente de Tarefas | código completo — não medido (golden set cobre os casos, não rodado após a Fase 4) |
 | 5 | Memória semântica (pgvector) | não iniciada |
 | 6 | Insights | não iniciada |
 
@@ -23,6 +27,20 @@ convite), shell visual completo (dashboard + chat flutuante) e a suíte de isola
 **Pendente na Fase 1, e depende de você:** aplicar a migração num Supabase real e rodar
 `npm run test:rls`. Até isso acontecer, o schema e as policies são código não verificado — o
 requisito 5.1 do brief pede isolamento *testado*, não presumido.
+
+### Retomando depois
+
+Quando quiser continuar, nesta ordem:
+
+1. **Banco primeiro, é de graça.** `npm run db:check` e `npm run test:rls` não chamam nenhum modelo —
+   só precisam de um Supabase configurado (veja "Setup" abaixo). É o maior risco não coberto hoje.
+2. **Confirmar a extração** (custa crédito): `npx vitest run --dir tests/eval/extraction --testTimeout=120000`.
+   Ela ficou em 90,6% numa rodada só, e as correções feitas depois (tratamento de saída fora do
+   schema, retentativa do roteador, lista de contas cadastradas no contexto) nunca foram remedidas.
+3. **Fase 5 e 6** exigem um household com uso real antes de fazer sentido — o próprio plano do
+   projeto condiciona o Insights a "haver dado real suficiente".
+
+Nenhum desses três passos precisa de mim para começar — são comandos que rodam sozinhos.
 
 ### Revisar o design sem Supabase
 
