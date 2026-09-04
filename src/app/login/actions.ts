@@ -44,10 +44,20 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   });
 
   if (error) {
-    // Mensagem idêntica para "não existe" e "senha errada" — não vale entregar
-    // enumeração de conta em troca de um erro mais específico.
-    console.error('[login] signInWithPassword falhou:', error.message);
-    return { status: 'error', message: 'E-mail ou senha incorretos.' };
+    console.error('[login] signInWithPassword falhou:', error.code, error.message);
+
+    // Único código que vale diferenciar: "e-mail ou senha errados" (code
+    // invalid_credentials) mascararia um problema de configuração real se
+    // também cobrisse email_not_confirmed. Foi exatamente essa mistura que fez
+    // "site trava no login" parecer um bug quando era o Supabase ainda com
+    // "Confirm email" ligado — a pessoa via sempre a mesma mensagem genérica
+    // depois de criar a conta, sem pista nenhuma do que fazer.
+    const message =
+      error.code === 'email_not_confirmed'
+        ? 'Sua conta ainda não foi confirmada. Peça ao administrador para desligar "Confirm email" em Authentication → Providers → Email no Supabase, ou confirme pelo e-mail recebido.'
+        : 'E-mail ou senha incorretos.';
+
+    return { status: 'error', message };
   }
 
   redirect('/');
