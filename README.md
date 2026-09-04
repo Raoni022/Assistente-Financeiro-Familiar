@@ -17,7 +17,7 @@ Sistema multi-agente de assistência financeira para uso da família. Next.js + 
 | 6 | Insights | não iniciada — por definição do próprio plano, depende de meses de dado real |
 
 **Concluído na Fase 1:** dependências, TypeScript estrito, Tailwind v4, tokens de design, contratos
-de agente, migração de schema com RLS, auth por magic link, onboarding (criar casa / entrar por
+de agente, migração de schema com RLS, auth por e-mail+senha, onboarding (criar casa / entrar por
 convite), shell visual completo (dashboard + chat flutuante) e a suíte de isolamento de RLS escrita.
 `npm run db:check` já passou contra um Supabase real: 16 tabelas, seed de categorias, pgvector com
 `match_memories` respondendo, e nenhuma tabela lendo dado para cliente anônimo.
@@ -36,15 +36,15 @@ não lê nada) está confirmada; o cenário específico de uma família ver dado
 - Grafo (`orchestrator/graph.ts`) e rota de chat já ligados: toda conversa agora passa por recall
   real, e todo `memoryCandidate` emitido pelos agentes é persistido de verdade.
 - **O que não foi verificado:** o caminho de ponta a ponta, porque isso exige um usuário logado de
-  verdade batendo no `/api/chat` — e login por magic link depende do SMTP que ainda não está
-  configurado (ver aviso na seção de Auth abaixo). A chamada direta à API da Voyage foi testada e
-  funciona; a integração dela com Supabase + RLS dentro do fluxo de chat, não.
+  verdade batendo no `/api/chat`. Login agora é e-mail+senha (sem SMTP no caminho), então isso ficou
+  mais simples de testar do que antes — só falta fazer. A chamada direta à API da Voyage foi
+  testada e funciona; a integração dela com Supabase + RLS dentro do fluxo de chat, não.
 
 ### Retomando depois
 
 1. **Segundo projeto Supabase para `test:rls`** — é de graça, só depende de você criar.
-2. **Testar o fluxo de memória de ponta a ponta** — precisa de SMTP configurado (ou login manual) e
-   depois algumas mensagens reais no chat para ver `recall`/`persist` acontecendo.
+2. **Testar o fluxo de memória de ponta a ponta** — crie uma conta pela tela de login e mande
+   algumas mensagens reais no chat para ver `recall`/`persist` acontecendo.
 3. **Fase 4 remedida** e **Fase 6** — a última por definição espera meses de dado real.
 
 > **Fora do escopo desta rodada:** `docs/architecture.md` menciona, de passagem, a ideia de trocar o
@@ -96,20 +96,21 @@ npm run db:check
 `match_memories` e — o mais importante — que **um cliente anônimo não lê nada**. A anon key é
 pública por desenho; uma tabela sem policy fica aberta para qualquer pessoa.
 
-### Auth (obrigatório para o magic link funcionar)
+### Auth: e-mail + senha, uma conta por pessoa
 
-Em Authentication → URL Configuration:
+O login trocou de magic link para e-mail + senha. A mudança não foi cosmética — o magic link
+depende de três coisas fora do nosso controle acontecerem certas ao mesmo tempo (SMTP configurado,
+domínio de redirect cadastrado no Supabase, e-mail chegando a tempo), e qualquer uma errada quebra
+o login inteiro com um loop difícil de diagnosticar. Senha resolve a sessão na hora, sem
+round-trip de e-mail — cada membro da família cria a própria conta pela aba "Criar conta".
 
-- **Site URL**: `http://localhost:3000` em desenvolvimento, o domínio da Vercel em produção.
-- **Redirect URLs**: adicione `http://localhost:3000/auth/callback` e
-  `https://SEU-DOMINIO.vercel.app/auth/callback`.
+**Obrigatório em Authentication → Providers → Email no Supabase:** desligue **"Confirm email"**.
+Sem isso, `signUp()` não devolve sessão ativa até a pessoa clicar num link de confirmação — o
+mesmo problema de dependência de e-mail que trocamos de método pra evitar.
 
-Sem isso o link chega no e-mail e o retorno falha.
-
-> **⚠️ O SMTP embutido do Supabase só entrega para endereços que estão no time do projeto**, com
-> limite baixo de mensagens por hora. Ou seja: o magic link chega para você, mas **não chega para
-> os outros membros da família**. Antes de convidar alguém, configure um SMTP próprio em
-> Authentication → Emails → SMTP Settings. O free do Resend resolve.
+Não há fluxo de "esqueci minha senha" implementado de propósito: para 2-4 pessoas, construir uma
+tela de recuperação (que reintroduziria e-mail) não compensa. Se alguém esquecer a senha, redefina
+manualmente pelo painel do Supabase em Authentication → Users → selecione o usuário → Reset password.
 
 ### Segundo projeto, para o teste de RLS
 
