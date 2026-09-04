@@ -37,7 +37,36 @@ export const getSession = cache(async (): Promise<Session | null> => {
     .eq('id', auth.user.id)
     .maybeSingle();
 
-  if (error || !profile) return null;
+  if (error) {
+    // Falha real de banco. Logar é obrigatório: sem isso, um Postgres fora do
+    // ar fica idêntico a "não está logado", e o usuário só vê a tela de login
+    // reaparecendo sem explicação nenhuma.
+    console.error('[session] falha ao ler profile:', error.message);
+    return null;
+  }
+
+  /*
+   * Autenticado, mas ainda sem linha em `profiles`. Isso NÃO é "sem sessão" —
+   * é exatamente o estado de quem acabou de criar a conta e ainda não passou
+   * pelo onboarding, que é justamente quem cria o profile.
+   *
+   * Devolver null aqui criava um deadlock: /onboarding exige sessão, a sessão
+   * exige profile, e o profile só nasce dentro do /onboarding. A pessoa
+   * logava com a senha certa e voltava para o login, para sempre. Foi o que
+   * quebrou tanto o fluxo de magic link quanto o de senha.
+   */
+  if (!profile) {
+    return {
+      userId: auth.user.id,
+      email: auth.user.email ?? '',
+      // Placeholder de vida curta: a primeira coisa que o onboarding pede é o
+      // nome de verdade.
+      displayName: auth.user.email?.split('@')[0] ?? 'você',
+      role: 'member',
+      householdId: null,
+      timezone: 'America/Sao_Paulo',
+    };
+  }
 
   const householdId = (profile.household_id as string | null) ?? null;
 

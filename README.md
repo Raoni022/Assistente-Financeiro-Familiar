@@ -13,7 +13,7 @@ Sistema multi-agente de assistência financeira para uso da família. Next.js + 
 | 2 | Orquestrador + Agente de Contas | código completo — **roteamento medido: 53/54 (98,1%)** |
 | 3 | Agente de Gastos + avaliação de extração | **completo e medido: 32/32 (100%)** nos quatro campos (valor, data, categoria, tipo) |
 | 4 | Agente de Tarefas | código completo — não medido (golden set cobre os casos, não rodado após a Fase 4) |
-| 5 | Memória semântica (pgvector + Voyage AI) | código completo — **não testado de ponta a ponta** (precisa de sessão logada de verdade; ver abaixo) |
+| 5 | Memória semântica (pgvector + Voyage AI) | código completo — recall/persist ligados; **fluxo de chat validado de ponta a ponta** |
 | 6 | Insights | não iniciada — por definição do próprio plano, depende de meses de dado real |
 
 **Concluído na Fase 1:** dependências, TypeScript estrito, Tailwind v4, tokens de design, contratos
@@ -35,17 +35,17 @@ não lê nada) está confirmada; o cenário específico de uma família ver dado
   similaridade ≥ 0.92 — ver `docs/architecture.md` §3.3).
 - Grafo (`orchestrator/graph.ts`) e rota de chat já ligados: toda conversa agora passa por recall
   real, e todo `memoryCandidate` emitido pelos agentes é persistido de verdade.
-- **O que não foi verificado:** o caminho de ponta a ponta, porque isso exige um usuário logado de
-  verdade batendo no `/api/chat`. Login agora é e-mail+senha (sem SMTP no caminho), então isso ficou
-  mais simples de testar do que antes — só falta fazer. A chamada direta à API da Voyage foi
-  testada e funciona; a integração dela com Supabase + RLS dentro do fluxo de chat, não.
+- **Validado de ponta a ponta** (04/09/2026, contra o Supabase real, com usuário logado de
+  verdade): criar conta → onboarding → dashboard → `POST /api/chat` com "gastei 80 reais no mercado
+  hoje" → roteador escolheu `transactions.create` → agente gravou R$ 80,00 / Mercado / data de hoje
+  → resposta sintetizada corretamente → `touched: ["transactions"]` → dashboard refletiu o valor.
+  A conta de teste e todos os dados criados foram removidos depois.
 
 ### Retomando depois
 
-1. **Segundo projeto Supabase para `test:rls`** — é de graça, só depende de você criar.
-2. **Testar o fluxo de memória de ponta a ponta** — crie uma conta pela tela de login e mande
-   algumas mensagens reais no chat para ver `recall`/`persist` acontecendo.
-3. **Fase 4 remedida** e **Fase 6** — a última por definição espera meses de dado real.
+1. **Segundo projeto Supabase para `test:rls`** — é de graça, só depende de você criar. É a única
+   verificação de segurança que continua pendente.
+2. **Fase 4 remedida** e **Fase 6** — a última por definição espera meses de dado real.
 
 > **Fora do escopo desta rodada:** `docs/architecture.md` menciona, de passagem, a ideia de trocar o
 > resumo de conversa de regra-fixa para LLM "junto com a Fase 5". Isso não foi construído — é uma
