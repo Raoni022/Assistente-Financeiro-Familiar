@@ -1,12 +1,14 @@
 import 'server-only';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { billsAgent } from '@/server/agents/bills/agent';
+import { recallMemories } from '@/server/agents/memory/agent';
 import { tasksAgent } from '@/server/agents/tasks/agent';
 import { transactionsAgent } from '@/server/agents/transactions/agent';
 import type {
   AgentContext,
   AgentName,
   ExecutionPlan,
+  MemoryCandidate,
   PlanStep,
   SpecialistAgent,
   StepResult,
@@ -15,6 +17,8 @@ import type {
 } from '@/server/agents/shared/contracts';
 import { resolveLevels, resolveReferences, stepsBlockedBy, PlanError } from '@/server/agents/shared/plan';
 import { logAgentRun, runStep } from '@/server/agents/shared/run-agent';
+import { createClient } from '@/server/db/server';
+import { createVoyageProvider } from '@/server/embeddings/voyage';
 import { routePlan } from './router';
 import { synthesize } from './synthesize';
 
@@ -24,18 +28,21 @@ import { synthesize } from './synthesize';
  *   recall_memory → route → execute ⇄ execute → synthesize → END
  *                      └────── direct ──────────┘
  *
- * FASE 2: `recall_memory` é um nó real mas ainda devolve lista vazia — o
- * retrieval semântico entra na Fase 5. O nó existe desde já para que a forma do
- * grafo não mude depois, e para que a ordem (memória ANTES do roteamento, porque
- * memória pode mudar o plano, não só a redação) já esteja fixada.
+ * `recall_memory` busca memórias ANTES do roteamento, não depois: memória pode
+ * mudar o PLANO (ex: "a família já decidiu manter a Netflix"), não só a
+ * redação da resposta final. A escrita de memória (memoryCandidates emitidos
+ * pelos agentes) roda fora deste grafo, depois da resposta já entregue — ver
+ * `after()` em src/app/api/chat/route.ts.
  */
 
 const AGENTS: Record<AgentName, SpecialistAgent> = {
   bills: billsAgent,
   transactions: transactionsAgent,
   tasks: tasksAgent,
-  // Fases 5 e 6. Até lá o roteador não emite intenções destes agentes.
+  // Fase 6. Até lá o roteador não emite intenções deste agente.
   insights: notImplemented('insights'),
+  // Nunca chamado por aqui — memória é transversal, não um passo de plano.
+  // Ver recallMemories/persistMemoryCandidates em agents/memory/agent.ts.
   memory: notImplemented('memory'),
 };
 
@@ -66,6 +73,10 @@ const OrchestratorState = Annotation.Root({
   finalText: Annotation<string>({ reducer: (_p, n) => n, default: () => '' }),
   blocks: Annotation<UiBlock[]>({ reducer: (p, n) => [...p, ...n], default: () => [] }),
   touched: Annotation<TouchedResource[]>({ reducer: (p, n) => [...p, ...n], default: () => [] }),
+  memoryCandidates: Annotation<MemoryCandidate[]>({
+    reducer: (p, n) => [...p, ...n],
+    default: () => [],
+  }),
 });
 
 type State = typeof OrchestratorState.State;
@@ -74,9 +85,12 @@ type State = typeof OrchestratorState.State;
 // Nós
 // ---------------------------------------------------------------------------
 
-async function recallMemory(): Promise<Partial<State>> {
-  // Fase 5: embedding da mensagem + match_memories, escopado por household.
-  return { memories: [] };
+async function recallMemory(state: State): Promise<Partial<State>> {
+  // Client autenticado com o JWT do usuário: match_memories é SECURITY INVOKER
+  // e a RLS decide o que é visível — nunca service role aqui.
+  const supabase = await createClient();
+  const memories = await recallMemories(supabase, createVoyageProvider(), state.userMessage);
+  return { memories };
 }
 
 async function route(state: State): Promise<Partial<State>> {
@@ -109,16 +123,18 @@ async function execute(state: State): Promise<Partial<State>> {
   const merged: Record<string, StepResult> = {};
   const blocks: UiBlock[] = [];
   const touched: TouchedResource[] = [];
+  const memoryCandidates: MemoryCandidate[] = [];
 
   for (const result of results) {
     merged[result.step.id] = result;
     if (result.response?.success) {
       blocks.push(...(result.response.blocks ?? []));
       touched.push(...(result.response.touched ?? []));
+      memoryCandidates.push(...(result.response.memoryCandidates ?? []));
     }
   }
 
-  return { stepResults: merged, blocks, touched };
+  return { stepResults: merged, blocks, touched, memoryCandidates };
 }
 
 async function executeStep(
@@ -230,6 +246,9 @@ export interface OrchestratorResult {
   touched: TouchedResource[];
   plan: ExecutionPlan | null;
   stepResults: StepResult[];
+  /** Fatos candidatos a memória duradoura. Gravados fora do caminho crítico —
+   *  ver `after()` em src/app/api/chat/route.ts. */
+  memoryCandidates: MemoryCandidate[];
 }
 
 export async function runOrchestrator(
@@ -251,5 +270,6 @@ export async function runOrchestrator(
     touched: [...new Set(final.touched)],
     plan: final.plan,
     stepResults: Object.values(final.stepResults),
+    memoryCandidates: final.memoryCandidates,
   };
 }

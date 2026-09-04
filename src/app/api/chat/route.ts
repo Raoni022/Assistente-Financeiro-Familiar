@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { NextResponse, type NextRequest } from 'next/server';
+import { after, NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { runOrchestrator } from '@/server/agents/orchestrator/graph';
+import { persistMemoryCandidates } from '@/server/agents/memory/agent';
 import { getSession } from '@/server/auth/session';
 import { loadOrCreateConversation, persistTurn } from '@/server/conversation';
 import { createClient } from '@/server/db/server';
+import { createVoyageProvider } from '@/server/embeddings/voyage';
 import { CHAT_LIMITS, checkRateLimit, pruneRateLimits } from '@/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -94,6 +96,37 @@ export async function POST(request: NextRequest) {
 
     // Oportunista: limpa janelas velhas de vez em quando, sem cron dedicado.
     if (Math.random() < 0.02) void pruneRateLimits();
+
+    /*
+     * Escrita de memória DEPOIS da resposta, fora do caminho crítico —
+     * docs/architecture.md §3.3. `after()` roda o callback quando a resposta já
+     * foi enviada ao cliente, mas mantém a function viva até ele terminar; o
+     * usuário não espera nem um milissegundo por isto.
+     *
+     * Reaproveita o `supabase` já criado (com o JWT desta sessão) em vez de
+     * chamar `createClient()` de novo dentro do callback: o cliente já tem a
+     * sessão estabelecida, e a única escrita de cookie que poderia precisar
+     * (refresh de token) já está protegida por try/catch em
+     * src/server/db/server.ts.
+     */
+    if (result.memoryCandidates.length > 0) {
+      // Constantes locais, não `session.householdId` direto: dentro do closure
+      // de `after()`, o TypeScript reabre o tipo para `string | null` — ele não
+      // garante que a narrowing feita antes do `await` sobrevive dentro de uma
+      // função que pode rodar depois. Capturar em `const` aqui, no fluxo
+      // síncrono já estreitado, resolve isso sem precisar de non-null assertion.
+      const householdId = session.householdId;
+      const userId = session.userId;
+      after(() =>
+        persistMemoryCandidates(
+          supabase,
+          createVoyageProvider(),
+          householdId,
+          userId,
+          result.memoryCandidates,
+        ),
+      );
+    }
 
     const payload: ChatResponseBody = {
       conversationId,

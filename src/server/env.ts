@@ -6,7 +6,9 @@ import { z } from 'zod';
  * faltando, é muito melhor do que descobrir em runtime que uma chave é
  * `undefined` no meio de uma chamada ao modelo.
  *
- * `VOYAGE_API_KEY` é opcional até a Fase 5 (memória semântica).
+ * `VOYAGE_API_KEY` é opcional: sem ela, o Agente de Memória (Fase 5) fica
+ * inerte — `recall_memory` devolve lista vazia e a escrita de memória vira
+ * no-op — em vez de derrubar o resto do sistema.
  */
 const schema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url(),

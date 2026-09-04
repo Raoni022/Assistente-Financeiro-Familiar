@@ -5,42 +5,52 @@ Sistema multi-agente de assistência financeira para uso da família. Next.js + 
 - **Arquitetura, grafo de agentes, contratos e modelo de dados:** [`docs/architecture.md`](docs/architecture.md)
 - **Sistema de design, paleta, tipografia e wireframes:** [`docs/design.md`](docs/design.md)
 
-## Estado atual (pausa de desenvolvimento)
-
-O desenvolvimento foi pausado aqui de propósito, para não continuar consumindo crédito de API em
-avaliações. Tudo abaixo é o que existe **em código**, e o que ainda depende de rodar algo (banco ou
-modelo) para ser confirmado.
+## Estado atual
 
 | Fase | Escopo | Status |
 |---|---|---|
-| 1 | Fundação: setup, schema + RLS, auth, shell visual | código completo — **RLS não testada contra banco real** |
+| 1 | Fundação: setup, schema + RLS, auth, shell visual | código completo — **RLS básica confirmada** (`db:check` verde contra Supabase real); **isolamento entre households ainda não testado** (`test:rls` pulado — falta um segundo projeto) |
 | 2 | Orquestrador + Agente de Contas | código completo — **roteamento medido: 53/54 (98,1%)** |
-| 3 | Agente de Gastos + avaliação de extração | código completo — **extração medida uma vez (90,6%); três correções aplicadas depois não foram remedidas** |
+| 3 | Agente de Gastos + avaliação de extração | **completo e medido: 32/32 (100%)** nos quatro campos (valor, data, categoria, tipo) |
 | 4 | Agente de Tarefas | código completo — não medido (golden set cobre os casos, não rodado após a Fase 4) |
-| 5 | Memória semântica (pgvector) | não iniciada |
-| 6 | Insights | não iniciada |
+| 5 | Memória semântica (pgvector + Voyage AI) | código completo — **não testado de ponta a ponta** (precisa de sessão logada de verdade; ver abaixo) |
+| 6 | Insights | não iniciada — por definição do próprio plano, depende de meses de dado real |
 
 **Concluído na Fase 1:** dependências, TypeScript estrito, Tailwind v4, tokens de design, contratos
 de agente, migração de schema com RLS, auth por magic link, onboarding (criar casa / entrar por
 convite), shell visual completo (dashboard + chat flutuante) e a suíte de isolamento de RLS escrita.
+`npm run db:check` já passou contra um Supabase real: 16 tabelas, seed de categorias, pgvector com
+`match_memories` respondendo, e nenhuma tabela lendo dado para cliente anônimo.
 
-**Pendente na Fase 1, e depende de você:** aplicar a migração num Supabase real e rodar
-`npm run test:rls`. Até isso acontecer, o schema e as policies são código não verificado — o
-requisito 5.1 do brief pede isolamento *testado*, não presumido.
+**Pendente na Fase 1:** `npm run test:rls` (isolamento entre duas famílias fictícias) continua sem
+rodar — exige um segundo projeto Supabase descartável, que ainda não existe. A RLS básica (anônimo
+não lê nada) está confirmada; o cenário específico de uma família ver dado de outra não.
+
+### Fase 5 — o que foi construído e o que falta verificar
+
+- `src/server/embeddings/` — interface `EmbeddingProvider` + implementação Voyage AI
+  (`voyage-3.5-lite`, 1024 dimensões — testado contra a API real, chave válida).
+- `src/server/agents/memory/` — `recallMemories` (busca antes do roteamento) e
+  `persistMemoryCandidates` (grava depois da resposta, via `after()`, com deduplicação por
+  similaridade ≥ 0.92 — ver `docs/architecture.md` §3.3).
+- Grafo (`orchestrator/graph.ts`) e rota de chat já ligados: toda conversa agora passa por recall
+  real, e todo `memoryCandidate` emitido pelos agentes é persistido de verdade.
+- **O que não foi verificado:** o caminho de ponta a ponta, porque isso exige um usuário logado de
+  verdade batendo no `/api/chat` — e login por magic link depende do SMTP que ainda não está
+  configurado (ver aviso na seção de Auth abaixo). A chamada direta à API da Voyage foi testada e
+  funciona; a integração dela com Supabase + RLS dentro do fluxo de chat, não.
 
 ### Retomando depois
 
-Quando quiser continuar, nesta ordem:
+1. **Segundo projeto Supabase para `test:rls`** — é de graça, só depende de você criar.
+2. **Testar o fluxo de memória de ponta a ponta** — precisa de SMTP configurado (ou login manual) e
+   depois algumas mensagens reais no chat para ver `recall`/`persist` acontecendo.
+3. **Fase 4 remedida** e **Fase 6** — a última por definição espera meses de dado real.
 
-1. **Banco primeiro, é de graça.** `npm run db:check` e `npm run test:rls` não chamam nenhum modelo —
-   só precisam de um Supabase configurado (veja "Setup" abaixo). É o maior risco não coberto hoje.
-2. **Confirmar a extração** (custa crédito): `npx vitest run --dir tests/eval/extraction --testTimeout=120000`.
-   Ela ficou em 90,6% numa rodada só, e as correções feitas depois (tratamento de saída fora do
-   schema, retentativa do roteador, lista de contas cadastradas no contexto) nunca foram remedidas.
-3. **Fase 5 e 6** exigem um household com uso real antes de fazer sentido — o próprio plano do
-   projeto condiciona o Insights a "haver dado real suficiente".
-
-Nenhum desses três passos precisa de mim para começar — são comandos que rodam sozinhos.
+> **Fora do escopo desta rodada:** `docs/architecture.md` menciona, de passagem, a ideia de trocar o
+> resumo de conversa de regra-fixa para LLM "junto com a Fase 5". Isso não foi construído — é uma
+> melhoria separada (resumir com modelo, não recuperar memória), ficaria atrás de nova avaliação, e
+> ninguém pediu especificamente. O resumo por regra simples (`ruleBasedSummarizer`) continua ativo.
 
 ### Revisar o design sem Supabase
 

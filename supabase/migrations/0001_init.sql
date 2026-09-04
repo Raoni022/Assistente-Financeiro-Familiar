@@ -324,7 +324,10 @@ create or replace function public.match_memories(
 returns table (id uuid, content text, kind memory_kind, scope memory_scope, similarity real)
 language sql
 stable
-set search_path = public
+-- `extensions`, não só `public`: o Supabase instala a extensão vector no schema
+-- `extensions` por padrão desde 2023. O operador `<=>` mora lá — sem incluir
+-- esse schema aqui, a função não enxerga o próprio operador que usa.
+set search_path = public, extensions
 as $$
   select m.id,
          m.content,
