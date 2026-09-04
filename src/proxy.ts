@@ -16,10 +16,24 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env['NEXT_PUBLIC_SUPABASE_URL']!,
-    process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
-    {
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+  const anonKey = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+
+  /*
+   * Falha aqui não pode derrubar o site inteiro. O proxy roda em TODO request
+   * — se `createServerClient` ou `getUser()` lançarem (env var ausente na
+   * Vercel, chave malformada, Supabase fora do ar), o pior resultado aceitável
+   * é "a sessão não foi renovada desta vez", nunca "Internal Server Error" na
+   * página inicial. `requireSession`/`requireHousehold` no servidor e a RLS no
+   * banco continuam sendo a autorização de verdade — o proxy é só otimização.
+   */
+  if (!url || !anonKey) {
+    console.error('[proxy] NEXT_PUBLIC_SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_ANON_KEY ausente.');
+    return response;
+  }
+
+  try {
+    const supabase = createServerClient(url, anonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -34,12 +48,15 @@ export async function proxy(request: NextRequest) {
           }
         },
       },
-    },
-  );
+    });
 
-  // Chamada obrigatória: é ela que dispara o refresh quando o token está perto
-  // de expirar. Remover "porque o resultado não é usado" quebra a sessão.
-  await supabase.auth.getUser();
+    // Chamada obrigatória: é ela que dispara o refresh quando o token está
+    // perto de expirar. Remover "porque o resultado não é usado" quebra a
+    // sessão.
+    await supabase.auth.getUser();
+  } catch (error) {
+    console.error('[proxy] falha ao renovar sessão:', (error as Error).message);
+  }
 
   return response;
 }
